@@ -671,6 +671,164 @@
   .btn-skip:disabled{ opacity: 0.35; cursor: not-allowed; }
 
   /* ---------- History tab ---------- */
+  .streak-panel{
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px 20px;
+    margin-bottom: 22px;
+  }
+  .streak-grid-wrap{
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .streak-months{
+    position: relative;
+    height: 14px;
+    margin: 0 0 6px 30px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+  }
+  .streak-months span{ position: absolute; white-space: nowrap; }
+  .streak-grid-row{
+    display: flex;
+    gap: 6px;
+  }
+  .streak-daylabels{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 24px;
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--ink-faint);
+  }
+  .streak-daylabels span{ height: 13px; line-height: 13px; }
+  .streak-grid{
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, 13px);
+    gap: 3px;
+  }
+  .streak-cell{
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+  }
+  .streak-cell.done{
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+  .streak-cell.future{
+    background: transparent;
+    border: 1px dashed var(--line);
+  }
+  .streak-cell.today{
+    box-shadow: 0 0 0 1.5px var(--ink-dim);
+  }
+  .streak-stats{
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .streak-stat-card{
+    flex: 1;
+    min-width: 170px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+  }
+  .streak-stat-num{
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .streak-stat-label{
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+
+  .intensity-panel{
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px 18px;
+    margin-bottom: 22px;
+  }
+  .intensity-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .intensity-title{
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .intensity-legend{
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+  }
+  .legend-swatch{
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .legend-swatch.lvl0, .intensity-bar.lvl0{ background: var(--line); }
+  .legend-swatch.lvl1, .intensity-bar.lvl1{ background: #eccf98; }
+  .legend-swatch.lvl2, .intensity-bar.lvl2{ background: #dfae65; }
+  .legend-swatch.lvl3, .intensity-bar.lvl3{ background: #c98a3c; }
+  .legend-swatch.lvl4, .intensity-bar.lvl4{ background: #a15f22; }
+
+  .intensity-scroll{
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .intensity-bars{
+    display: flex;
+    gap: 4px;
+    height: 90px;
+    align-items: stretch;
+  }
+  .intensity-bar{
+    flex: 0 0 32px;
+    width: 32px;
+    border-radius: 3px;
+  }
+  .intensity-bar.future{ background: transparent; }
+
+  .intensity-daylabels{
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+  }
+  .intensity-daylabels span{
+    flex: 0 0 32px;
+    width: 32px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
   .history-toolbar{
     display: flex;
     justify-content: flex-end;
@@ -907,6 +1065,45 @@
 
     <!-- ================= HISTORY TAB ================= -->
     <div class="view" id="view-history">
+      <div class="streak-panel">
+        <div class="streak-grid-wrap">
+          <div class="streak-months" id="streakMonths"></div>
+          <div class="streak-grid-row">
+            <div class="streak-daylabels" id="streakDayLabels"></div>
+            <div class="streak-grid" id="streakGrid"></div>
+          </div>
+        </div>
+        <div class="streak-stats">
+          <div class="streak-stat-card">
+            <div class="streak-stat-num" id="currentStreakNum">0</div>
+            <div class="streak-stat-label">🔥 Streak hiện tại (ngày liên tiếp)</div>
+          </div>
+          <div class="streak-stat-card">
+            <div class="streak-stat-num" id="longestStreakNum">0</div>
+            <div class="streak-stat-label" id="longestStreakRange">Streak dài nhất</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="intensity-panel">
+        <div class="intensity-header">
+          <div class="intensity-title">Cường độ luyện tập theo ngày</div>
+          <div class="intensity-legend">
+            <span>Ít hơn</span>
+            <span class="legend-swatch lvl0"></span>
+            <span class="legend-swatch lvl1"></span>
+            <span class="legend-swatch lvl2"></span>
+            <span class="legend-swatch lvl3"></span>
+            <span class="legend-swatch lvl4"></span>
+            <span>Nhiều hơn</span>
+          </div>
+        </div>
+        <div class="intensity-scroll">
+          <div class="intensity-bars" id="intensityBars"></div>
+          <div class="intensity-daylabels" id="intensityDayLabels"></div>
+        </div>
+      </div>
+
       <div class="history-toolbar">
         <button class="btn-ghost" id="clearHistoryBtn">Xóa lịch sử</button>
       </div>
@@ -997,7 +1194,7 @@
     pageEyebrow.textContent = h.eyebrow;
     pageTitle.textContent = h.title;
     headerActionBtn.style.display = h.action ? "inline-block" : "none";
-    if(tabKey === "history") renderHistory();
+    if(tabKey === "history"){ renderHistory(); renderStreak(); renderIntensity(); }
     if(tabKey === "report") renderReport();
   }
 
@@ -1491,12 +1688,197 @@
     `).join("");
   }
 
+  /* ---------------- Streak (heatmap) ---------------- */
+  const streakGrid = document.getElementById("streakGrid");
+  const streakMonths = document.getElementById("streakMonths");
+  const streakDayLabels = document.getElementById("streakDayLabels");
+  const currentStreakNum = document.getElementById("currentStreakNum");
+  const longestStreakNum = document.getElementById("longestStreakNum");
+  const longestStreakRange = document.getElementById("longestStreakRange");
+
+  const WEEKS_SHOWN = 18;
+  const MONTH_NAMES = ["Th1","Th2","Th3","Th4","Th5","Th6","Th7","Th8","Th9","Th10","Th11","Th12"];
+
+  function tsToISO(ts){
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function isoToDate(iso){
+    return new Date(iso + "T00:00:00");
+  }
+
+  function mondayIndex(date){
+    // Mon=0 ... Sun=6
+    return (date.getDay() + 6) % 7;
+  }
+
+  function getCompletedDateSet(){
+    const set = new Set();
+    history.forEach(h=>{
+      if(h.result === "completed") set.add(tsToISO(h.timestamp));
+    });
+    return set;
+  }
+
+  function computeCurrentStreak(dateSet){
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const cursor = new Date(today);
+    const pad = n => String(n).padStart(2, "0");
+    const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    if(!dateSet.has(iso(cursor))){
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    let streak = 0;
+    while(dateSet.has(iso(cursor))){
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function computeLongestStreak(dateSet){
+    const dates = Array.from(dateSet).sort();
+    if(dates.length === 0) return { length: 0, start: null, end: null };
+
+    let best = { length: 1, start: dates[0], end: dates[0] };
+    let curLen = 1, curStart = dates[0], prev = isoToDate(dates[0]);
+
+    for(let i=1; i<dates.length; i++){
+      const d = isoToDate(dates[i]);
+      const diffDays = Math.round((d - prev) / 86400000);
+      if(diffDays === 1){
+        curLen++;
+      } else {
+        if(curLen > best.length){ best = { length: curLen, start: curStart, end: dates[i-1] }; }
+        curLen = 1;
+        curStart = dates[i];
+      }
+      prev = d;
+    }
+    if(curLen > best.length){ best = { length: curLen, start: curStart, end: dates[dates.length-1] }; }
+    return best;
+  }
+
+  function formatIsoShort(iso){
+    if(!iso) return "";
+    const [y,m,d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  }
+
+  function renderStreak(){
+    const dateSet = getCompletedDateSet();
+
+    // Day labels: Th2, blank, Th4, blank, Th6, blank, blank
+    streakDayLabels.innerHTML = ["T2","","T4","","T6","",""].map(l=>`<span>${l}</span>`).join("");
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const todayIso = tsToISO(today.getTime());
+
+    const totalDays = WEEKS_SHOWN * 7;
+    const startOffset = mondayIndex(today) + (WEEKS_SHOWN - 1) * 7;
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - startOffset);
+
+    let cellsHtml = "";
+    const monthMarks = [];
+    let lastMonth = null;
+
+    for(let i=0; i<totalDays; i++){
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const iso = tsToISO(d.getTime());
+      const col = Math.floor(i / 7);
+      const row = i % 7;
+
+      if(row === 0){
+        const m = d.getMonth();
+        if(m !== lastMonth){
+          monthMarks.push({ col, label: MONTH_NAMES[m] });
+          lastMonth = m;
+        }
+      }
+
+      if(d > today){
+        cellsHtml += `<div class="streak-cell future" title=""></div>`;
+      } else {
+        const done = dateSet.has(iso);
+        const isToday = iso === todayIso;
+        cellsHtml += `<div class="streak-cell${done ? " done" : ""}${isToday ? " today" : ""}" title="${iso}${done ? " · Đã luyện tập" : ""}"></div>`;
+      }
+    }
+    streakGrid.innerHTML = cellsHtml;
+
+    const cellStep = 16; // 13px cell + 3px gap
+    streakMonths.innerHTML = monthMarks.map(m=>`<span style="left:${m.col * cellStep}px">${m.label}</span>`).join("");
+
+    currentStreakNum.textContent = computeCurrentStreak(dateSet);
+    const best = computeLongestStreak(dateSet);
+    longestStreakNum.textContent = best.length;
+    longestStreakRange.textContent = best.length > 0
+      ? `Streak dài nhất · ${formatIsoShort(best.start)} – ${formatIsoShort(best.end)}`
+      : "Streak dài nhất";
+  }
+
+  /* ---------------- Intensity heatmap ---------------- */
+  const intensityBars = document.getElementById("intensityBars");
+  const intensityDayLabels = document.getElementById("intensityDayLabels");
+  const INTENSITY_DAYS = 20;
+
+  function getDailyCounts(){
+    const counts = {};
+    history.forEach(h=>{
+      const iso = tsToISO(h.timestamp);
+      counts[iso] = (counts[iso] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function bucketLevel(count){
+    if(count <= 0) return 0;
+    if(count === 1) return 1;
+    if(count === 2) return 2;
+    if(count === 3) return 3;
+    return 4;
+  }
+
+  function renderIntensity(){
+    const counts = getDailyCounts();
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (INTENSITY_DAYS - 1));
+
+    let barsHtml = "";
+    let labelsHtml = "";
+
+    for(let i=0; i<INTENSITY_DAYS; i++){
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const iso = tsToISO(d.getTime());
+      const count = counts[iso] || 0;
+      const lvl = bucketLevel(count);
+
+      barsHtml += `<div class="intensity-bar lvl${lvl}" title="${iso} · ${count} lượt"></div>`;
+      labelsHtml += `<span>${d.getDate()}/${d.getMonth()+1}</span>`;
+    }
+
+    intensityBars.innerHTML = barsHtml;
+    intensityDayLabels.innerHTML = labelsHtml;
+  }
+
   clearHistoryBtn.addEventListener("click", ()=>{
     if(history.length === 0) return;
     if(confirm("Xóa toàn bộ lịch sử luyện tập?")){
       history = [];
       saveHistory(history);
       renderHistory();
+      renderStreak();
+      renderIntensity();
     }
   });
 
