@@ -3,26 +3,35 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Luyện nói — Bộ đếm giờ</title>
+<title>Luyện nói</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #12151a;
-    --panel: #1a1e25;
-    --panel-raised: #20252d;
-    --line: #2b313b;
-    --ink: #e9e7e1;
-    --ink-dim: #98a0ab;
-    --ink-faint: #5d6570;
-    --teal: #4fd1c5;
-    --teal-dim: #2f7a72;
-    --amber: #e8a33d;
-    --red: #e2604f;
-    --radius: 3px;
+    --bg: #f5efe1;
+    --bg-soft: #fbf7ec;
+    --sidebar-bg: #2a2420;
+    --sidebar-active: #3c332b;
+    --sidebar-text: #cabfae;
+    --sidebar-text-dim: #8f8575;
+    --line: #e3d7bb;
+    --line-strong: #d5c49c;
+    --ink: #2a2420;
+    --ink-dim: #7d7364;
+    --ink-faint: #a89d89;
+    --gold: #a97d3f;
+    --gold-soft: #f0e0bc;
+    --gold-dim: #c9ab74;
+    --dark: #221d19;
+    --red: #ac4d3a;
+    --red-soft: #f4ddd6;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --radius-pill: 999px;
     --mono: 'JetBrains Mono', ui-monospace, monospace;
     --sans: 'Work Sans', system-ui, sans-serif;
+    --serif: 'Playfair Display', Georgia, serif;
   }
 
   *{ box-sizing: border-box; }
@@ -34,10 +43,10 @@
     line-height: 1.5;
     min-height: 100vh;
   }
-  ::selection{ background: var(--teal-dim); color: #fff; }
+  ::selection{ background: var(--gold-soft); color: var(--ink); }
 
   :focus-visible{
-    outline: 2px solid var(--teal);
+    outline: 2px solid var(--gold);
     outline-offset: 2px;
   }
 
@@ -50,56 +59,139 @@
     cursor: pointer;
   }
 
-  /* ---------- Shell ---------- */
-  .shell{
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 28px 20px 80px;
-  }
-
-  .masthead{
-    display:flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 22px;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 18px;
-  }
-  .masthead h1{
-    font-size: 19px;
-    font-weight: 600;
-    margin: 0;
-    letter-spacing: 0.01em;
-  }
-  .masthead .count{
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--ink-faint);
-  }
-
-  .tabs{
+  /* ---------- App shell ---------- */
+  .app-shell{
     display: flex;
-    gap: 2px;
-    margin-bottom: 26px;
+    min-height: 100vh;
   }
-  .tab-btn{
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--ink-dim);
-    padding: 9px 18px;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: var(--radius);
+
+  .sidebar{
+    width: 246px;
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
   }
-  .tab-btn.active{
-    color: var(--bg);
-    background: var(--teal);
-    border-color: var(--teal);
+  .brand-name{
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+    color: #e8ddc9;
   }
-  .tab-btn:not(.active):hover{
-    border-color: var(--ink-faint);
+  .brand-rule{
+    height: 2px;
+    width: 56px;
+    background: var(--gold-dim);
+    margin: 16px 0 28px;
+  }
+  .side-nav{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .nav-item{
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: none;
+    border: none;
+    color: var(--sidebar-text);
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-family: var(--sans);
+  }
+  .nav-item .nav-dot{
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    flex-shrink: 0;
+  }
+  .nav-item:hover{
+    background: rgba(255,255,255,0.05);
+    color: #e8ddc9;
+  }
+  .nav-item.active{
+    background: var(--sidebar-active);
+    color: var(--gold-dim);
+    font-weight: 600;
+  }
+  .nav-item.active .nav-dot{
+    background: var(--gold-dim);
+    border-color: var(--gold-dim);
+  }
+  .nav-count{
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    opacity: 0.75;
+  }
+
+  .content{
+    flex: 1;
+    min-width: 0;
+    padding: 44px 52px 110px;
+    max-width: 920px;
+  }
+
+  .page-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .eyebrow{
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .page-title{
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0;
     color: var(--ink);
+    line-height: 1.1;
+  }
+  .btn-dark-pill{
+    background: var(--dark);
+    color: #f5efe1;
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 13px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .btn-dark-pill:hover{ background: #33291f; }
+
+  @media (max-width: 860px){
+    .app-shell{ flex-direction: column; }
+    .sidebar{
+      width: 100%;
+      flex-direction: row;
+      align-items: center;
+      gap: 18px;
+      padding: 16px 20px;
+    }
+    .brand-rule{ display: none; }
+    .side-nav{
+      flex-direction: row;
+      overflow-x: auto;
+      gap: 6px;
+    }
+    .nav-item{ padding: 9px 12px; font-size: 13.5px; white-space: nowrap; }
+    .content{ padding: 28px 20px 90px; }
+    .page-title{ font-size: 28px; }
   }
 
   .view{ display: none; }
@@ -107,10 +199,10 @@
 
   /* ---------- Questions tab ---------- */
   .panel{
-    background: var(--panel);
+    background: var(--bg-soft);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 22px;
   }
 
   .panel + .panel{ margin-top: 18px; }
@@ -125,9 +217,9 @@
   }
   .field textarea, .field input[type="text"]{
     width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
     color: var(--ink);
     padding: 10px 12px;
     font-family: inherit;
@@ -136,7 +228,7 @@
   }
   .field textarea{ min-height: 56px; }
   .field textarea:focus, .field input:focus{
-    border-color: var(--teal-dim);
+    border-color: var(--gold);
   }
 
   .row2{
@@ -149,8 +241,8 @@
   }
 
   .support-item{
-    border: 1px dashed var(--line);
-    border-radius: var(--radius);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-sm);
     padding: 14px 14px 4px;
     margin-bottom: 10px;
     position: relative;
@@ -170,14 +262,14 @@
 
   .add-support-btn{
     background: none;
-    border: 1px solid var(--line);
-    color: var(--teal);
-    border-radius: var(--radius);
-    padding: 7px 14px;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    border-radius: var(--radius-pill);
+    padding: 7px 16px;
     font-size: 13px;
     margin-bottom: 18px;
   }
-  .add-support-btn:hover{ border-color: var(--teal-dim); }
+  .add-support-btn:hover{ background: var(--gold-soft); }
 
   .form-actions{
     display: flex;
@@ -185,21 +277,21 @@
     align-items: center;
   }
   .btn-primary{
-    background: var(--teal);
-    color: var(--bg);
+    background: var(--dark);
+    color: #f5efe1;
     border: none;
-    border-radius: var(--radius);
-    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    padding: 11px 22px;
     font-size: 14px;
     font-weight: 600;
   }
-  .btn-primary:hover{ background: #6adfd4; }
+  .btn-primary:hover{ background: #33291f; }
   .btn-ghost{
     background: none;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
     color: var(--ink-dim);
-    border-radius: var(--radius);
-    padding: 10px 16px;
+    border-radius: var(--radius-pill);
+    padding: 11px 18px;
     font-size: 14px;
   }
   .btn-ghost:hover{ color: var(--ink); border-color: var(--ink-faint); }
@@ -207,16 +299,16 @@
   .qlist-title{
     font-size: 12px;
     color: var(--ink-faint);
-    text-transform: none;
     margin: 26px 0 10px;
     letter-spacing: 0.02em;
   }
 
   .qcard{
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     margin-bottom: 8px;
     overflow: hidden;
+    background: var(--bg-soft);
   }
   .qcard-head{
     display: flex;
@@ -224,7 +316,6 @@
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    background: var(--panel-raised);
   }
   .qcard-q{
     font-size: 14px;
@@ -243,9 +334,9 @@
     color: var(--ink-faint);
     font-size: 13px;
     padding: 4px 7px;
-    border-radius: var(--radius);
+    border-radius: 6px;
   }
-  .icon-btn:hover{ color: var(--ink); background: var(--panel); }
+  .icon-btn:hover{ color: var(--ink); background: var(--line); }
   .icon-btn.danger:hover{ color: var(--red); }
 
   .qcard-body{
@@ -268,11 +359,11 @@
     display: inline-block;
     font-family: var(--mono);
     font-size: 12px;
-    color: var(--teal);
-    background: rgba(79,209,197,0.08);
-    border: 1px solid var(--teal-dim);
-    border-radius: var(--radius);
-    padding: 2px 8px;
+    color: var(--gold);
+    background: var(--gold-soft);
+    border: 1px solid var(--gold-dim);
+    border-radius: var(--radius-pill);
+    padding: 2px 10px;
     margin: 0 4px 4px 0;
   }
   .ref-text{ color: var(--ink); }
@@ -282,8 +373,8 @@
     font-size: 13px;
     padding: 20px 4px;
     text-align: center;
-    border: 1px dashed var(--line);
-    border-radius: var(--radius);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-sm);
   }
 
   /* ---------- Practice tab ---------- */
@@ -300,7 +391,7 @@
     padding: 18px 22px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: var(--panel);
+    background: var(--bg-soft);
     font-size: 17px;
     color: var(--ink);
     margin-bottom: 26px;
@@ -311,14 +402,14 @@
     display: block;
     margin: 0 auto 34px;
     background: none;
-    border: 1px solid var(--teal-dim);
-    color: var(--teal);
-    border-radius: var(--radius);
-    padding: 9px 22px;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    border-radius: var(--radius-pill);
+    padding: 10px 24px;
     font-size: 14px;
     font-weight: 500;
   }
-  .random-btn:hover{ background: rgba(79,209,197,0.08); }
+  .random-btn:hover{ background: var(--gold-soft); }
   .random-btn:disabled{
     opacity: 0.4;
     cursor: not-allowed;
@@ -335,7 +426,7 @@
     font-variant-numeric: tabular-nums;
     transition: color 0.3s ease;
   }
-  .timer-display.warn{ color: var(--amber); }
+  .timer-display.warn{ color: var(--gold); }
   .timer-display.done{ color: var(--red); }
 
   .duration-group{
@@ -346,16 +437,17 @@
   }
   .duration-btn{
     font-family: var(--mono);
-    background: none;
-    border: 1px solid var(--line);
+    background: #fff;
+    border: 1px solid var(--line-strong);
     color: var(--ink-dim);
-    border-radius: var(--radius);
-    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    padding: 9px 20px;
     font-size: 14px;
   }
   .duration-btn.active{
-    border-color: var(--teal);
-    color: var(--teal);
+    background: var(--dark);
+    color: #f5efe1;
+    border-color: var(--dark);
   }
   .duration-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
 
@@ -365,27 +457,27 @@
     gap: 12px;
   }
   .btn-start{
-    background: var(--teal);
-    color: var(--bg);
+    background: var(--dark);
+    color: #f5efe1;
     border: none;
-    border-radius: var(--radius);
-    padding: 12px 34px;
+    border-radius: var(--radius-pill);
+    padding: 13px 36px;
     font-size: 15px;
     font-weight: 600;
   }
-  .btn-start:hover{ background: #6adfd4; }
-  .btn-start:disabled{ opacity: 0.35; cursor: not-allowed; background: var(--teal); }
+  .btn-start:hover{ background: #33291f; }
+  .btn-start:disabled{ opacity: 0.35; cursor: not-allowed; background: var(--dark); }
 
   .btn-stop{
     background: none;
     border: 1px solid var(--red);
     color: var(--red);
-    border-radius: var(--radius);
-    padding: 12px 34px;
+    border-radius: var(--radius-pill);
+    padding: 13px 36px;
     font-size: 15px;
     font-weight: 600;
   }
-  .btn-stop:hover{ background: rgba(226,96,79,0.08); }
+  .btn-stop:hover{ background: var(--red-soft); }
   .btn-stop:disabled{ opacity: 0.35; cursor: not-allowed; }
 
   .status-line{
@@ -414,15 +506,15 @@
   }
   .btn-hint{
     font-family: var(--mono);
-    background: none;
-    border: 1px solid var(--line);
+    background: #fff;
+    border: 1px solid var(--line-strong);
     color: var(--ink-dim);
-    border-radius: var(--radius);
+    border-radius: var(--radius-pill);
     padding: 9px 18px;
     font-size: 13px;
   }
   .btn-hint:hover{ border-color: var(--ink-faint); color: var(--ink); }
-  .btn-hint.active{ border-color: var(--teal); color: var(--teal); }
+  .btn-hint.active{ border-color: var(--gold); color: var(--gold); background: var(--gold-soft); }
   .btn-hint:disabled{ opacity: 0.4; cursor: not-allowed; }
 
   .reveal-area{
@@ -431,10 +523,10 @@
   }
   .reveal-item{
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     padding: 12px 14px;
     margin-bottom: 8px;
-    background: var(--panel);
+    background: var(--bg-soft);
   }
   .reveal-item .block-label{ margin-bottom: 6px; }
   .reveal-item .ref-text{
@@ -451,20 +543,20 @@
   }
   .btn-complete{
     background: none;
-    border: 1px solid var(--teal);
-    color: var(--teal);
-    border-radius: var(--radius);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: var(--radius-pill);
     padding: 10px 22px;
     font-size: 14px;
     font-weight: 600;
   }
-  .btn-complete:hover{ background: rgba(79,209,197,0.08); }
+  .btn-complete:hover{ background: var(--gold-soft); }
   .btn-complete:disabled{ opacity: 0.35; cursor: not-allowed; }
   .btn-skip{
     background: none;
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
     color: var(--ink-dim);
-    border-radius: var(--radius);
+    border-radius: var(--radius-pill);
     padding: 10px 22px;
     font-size: 14px;
   }
@@ -483,9 +575,10 @@
     align-items: center;
     gap: 12px;
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     padding: 12px 14px;
     margin-bottom: 8px;
+    background: var(--bg-soft);
   }
   .hist-main{ flex: 1; min-width: 0; }
   .hist-question{
@@ -501,19 +594,19 @@
   .badge{
     font-family: var(--mono);
     font-size: 11px;
-    padding: 3px 9px;
-    border-radius: var(--radius);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
     flex-shrink: 0;
     white-space: nowrap;
   }
   .badge.completed{
-    color: var(--teal);
-    border: 1px solid var(--teal-dim);
-    background: rgba(79,209,197,0.08);
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    background: var(--gold-soft);
   }
   .badge.skipped{
     color: var(--ink-faint);
-    border: 1px solid var(--line);
+    border: 1px solid var(--line-strong);
   }
 
   /* ---------- Report tab ---------- */
@@ -527,14 +620,15 @@
     flex: 1;
     min-width: 120px;
     border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 14px;
+    border-radius: var(--radius-sm);
+    padding: 16px;
     text-align: center;
+    background: var(--bg-soft);
   }
   .summary-num{
-    font-family: var(--mono);
-    font-size: 26px;
-    font-weight: 600;
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 700;
     color: var(--ink);
   }
   .summary-label{
@@ -546,6 +640,10 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
   }
   .report-table th{
     text-align: left;
@@ -553,139 +651,151 @@
     font-family: var(--mono);
     color: var(--ink-faint);
     font-weight: 500;
-    padding: 8px 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--line);
   }
   .report-table td{
-    padding: 10px 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--line);
     color: var(--ink-dim);
     vertical-align: top;
   }
+  .report-table tr:last-child td{ border-bottom: none; }
   .report-table td.q-cell{ color: var(--ink); }
   .report-table td.num-cell{
     font-family: var(--mono);
     text-align: center;
   }
   .bar-track{
-    background: var(--panel-raised);
-    border-radius: var(--radius);
+    background: var(--line);
+    border-radius: var(--radius-pill);
     height: 5px;
     margin-top: 6px;
     overflow: hidden;
   }
   .bar-fill{
-    background: var(--teal);
+    background: var(--gold);
     height: 100%;
   }
 </style>
 </head>
 <body>
 
-<div class="shell">
+<div class="app-shell">
 
-  <div class="masthead">
-    <h1>Luyện nói</h1>
-    <span class="count" id="qCount">0 câu hỏi</span>
-  </div>
+  <aside class="sidebar">
+    <div class="brand-name">LUYỆN NÓI</div>
+    <div class="brand-rule"></div>
+    <nav class="side-nav">
+      <button class="nav-item active" data-tab="questions"><span class="nav-dot"></span>Câu hỏi<span class="nav-count" id="qCount">0</span></button>
+      <button class="nav-item" data-tab="practice"><span class="nav-dot"></span>Luyện tập</button>
+      <button class="nav-item" data-tab="history"><span class="nav-dot"></span>Lịch sử</button>
+      <button class="nav-item" data-tab="report"><span class="nav-dot"></span>Báo cáo</button>
+    </nav>
+  </aside>
 
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="questions">Câu hỏi</button>
-    <button class="tab-btn" data-tab="practice">Luyện tập</button>
-    <button class="tab-btn" data-tab="history">Lịch sử</button>
-    <button class="tab-btn" data-tab="report">Báo cáo</button>
-  </div>
+  <main class="content">
 
-  <!-- ================= QUESTIONS TAB ================= -->
-  <div class="view active" id="view-questions">
+    <div class="page-header">
+      <div>
+        <div class="eyebrow" id="pageEyebrow">BỘ CÂU HỎI CỦA BẠN</div>
+        <h1 class="page-title" id="pageTitle">Câu hỏi</h1>
+      </div>
+      <button class="btn-dark-pill" id="headerActionBtn">+ Thêm câu hỏi</button>
+    </div>
 
-    <div class="panel">
-      <form id="qForm">
-        <div class="field">
-          <label for="fQuestion">Câu hỏi</label>
-          <textarea id="fQuestion" required placeholder="Tại sao...?"></textarea>
-        </div>
+    <!-- ================= QUESTIONS TAB ================= -->
+    <div class="view active" id="view-questions">
 
-        <div class="field">
-          <label>Thông điệp cốt lõi (answer first)</label>
-          <div class="row2">
-            <input type="text" id="fCoreKeyword" placeholder="Từ khóa" />
-            <textarea id="fCoreRef" placeholder="Gợi ý tham khảo"></textarea>
+      <div class="panel">
+        <form id="qForm">
+          <div class="field">
+            <label for="fQuestion">Câu hỏi</label>
+            <textarea id="fQuestion" required placeholder="Tại sao...?"></textarea>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Các ý support</label>
-          <div id="supportList"></div>
-          <button type="button" class="add-support-btn" id="addSupportBtn">+ Thêm ý support</button>
-        </div>
+          <div class="field">
+            <label>Thông điệp cốt lõi (answer first)</label>
+            <div class="row2">
+              <input type="text" id="fCoreKeyword" placeholder="Từ khóa" />
+              <textarea id="fCoreRef" placeholder="Gợi ý tham khảo"></textarea>
+            </div>
+          </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn-primary" id="saveBtn">Lưu câu hỏi</button>
-          <button type="button" class="btn-ghost" id="cancelEditBtn" style="display:none;">Hủy chỉnh sửa</button>
-        </div>
-      </form>
+          <div class="field">
+            <label>Các ý support</label>
+            <div id="supportList"></div>
+            <button type="button" class="add-support-btn" id="addSupportBtn">+ Thêm ý support</button>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="saveBtn">Lưu câu hỏi</button>
+            <button type="button" class="btn-ghost" id="cancelEditBtn" style="display:none;">Hủy chỉnh sửa</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="qlist-title">Danh sách đã lưu</div>
+      <div id="qList"></div>
+
     </div>
 
-    <div class="qlist-title">Danh sách đã lưu</div>
-    <div id="qList"></div>
+    <!-- ================= PRACTICE TAB ================= -->
+    <div class="view" id="view-practice">
 
-  </div>
+      <div class="stage">
+        <div class="stage-question placeholder" id="stageQuestion">Bấm "Random câu hỏi" để bắt đầu</div>
 
-  <!-- ================= PRACTICE TAB ================= -->
-  <div class="view" id="view-practice">
+        <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
 
-    <div class="stage">
-      <div class="stage-question placeholder" id="stageQuestion">Bấm "Random câu hỏi" để bắt đầu</div>
+        <div class="timer-display" id="timerDisplay">07</div>
 
-      <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
-
-      <div class="timer-display" id="timerDisplay">07</div>
-
-      <div class="duration-group" id="durationGroup">
-        <button class="duration-btn active" data-secs="7">7s</button>
-        <button class="duration-btn" data-secs="15">15s</button>
-        <button class="duration-btn" data-secs="30">30s</button>
-      </div>
-
-      <div class="control-group">
-        <button class="btn-start" id="startBtn">Bắt đầu</button>
-        <button class="btn-stop" id="stopBtn" disabled>Dừng</button>
-      </div>
-
-      <div class="status-line" id="statusLine"></div>
-
-      <hr class="divider" />
-
-      <div class="hint-section">
-        <div class="hint-buttons">
-          <button class="btn-hint" id="keywordBtn" disabled>Xem key words</button>
-          <button class="btn-hint" id="samplesBtn" disabled>Xem samples</button>
+        <div class="duration-group" id="durationGroup">
+          <button class="duration-btn active" data-secs="7">7s</button>
+          <button class="duration-btn" data-secs="15">15s</button>
+          <button class="duration-btn" data-secs="30">30s</button>
         </div>
-        <div class="reveal-area" id="revealArea"></div>
+
+        <div class="control-group">
+          <button class="btn-start" id="startBtn">Bắt đầu</button>
+          <button class="btn-stop" id="stopBtn" disabled>Dừng</button>
+        </div>
+
+        <div class="status-line" id="statusLine"></div>
+
+        <hr class="divider" />
+
+        <div class="hint-section">
+          <div class="hint-buttons">
+            <button class="btn-hint" id="keywordBtn" disabled>Xem key words</button>
+            <button class="btn-hint" id="samplesBtn" disabled>Xem samples</button>
+          </div>
+          <div class="reveal-area" id="revealArea"></div>
+        </div>
+
+        <div class="finish-group">
+          <button class="btn-complete" id="completeBtn" disabled>✓ Hoàn thành luyện tập</button>
+          <button class="btn-skip" id="skipBtn" disabled>Bỏ qua</button>
+        </div>
       </div>
 
-      <div class="finish-group">
-        <button class="btn-complete" id="completeBtn" disabled>✓ Hoàn thành luyện tập</button>
-        <button class="btn-skip" id="skipBtn" disabled>Bỏ qua</button>
+    </div>
+
+    <!-- ================= HISTORY TAB ================= -->
+    <div class="view" id="view-history">
+      <div class="history-toolbar">
+        <button class="btn-ghost" id="clearHistoryBtn">Xóa lịch sử</button>
       </div>
+      <div id="historyList"></div>
     </div>
 
-  </div>
-
-  <!-- ================= HISTORY TAB ================= -->
-  <div class="view" id="view-history">
-    <div class="history-toolbar">
-      <button class="btn-ghost" id="clearHistoryBtn">Xóa lịch sử</button>
+    <!-- ================= REPORT TAB ================= -->
+    <div class="view" id="view-report">
+      <div class="report-summary" id="reportSummary"></div>
+      <div id="reportTableWrap"></div>
     </div>
-    <div id="historyList"></div>
-  </div>
 
-  <!-- ================= REPORT TAB ================= -->
-  <div class="view" id="view-report">
-    <div class="report-summary" id="reportSummary"></div>
-    <div id="reportTableWrap"></div>
-  </div>
+  </main>
 
 </div>
 
@@ -736,23 +846,45 @@
   }
   let history = loadHistory();
 
-  /* ---------------- Tabs ---------------- */
-  const tabBtns = document.querySelectorAll(".tab-btn");
+  /* ---------------- Tabs / page header ---------------- */
+  const pageHeaders = {
+    questions: { eyebrow: "BỘ CÂU HỎI CỦA BẠN", title: "Câu hỏi", action: true },
+    practice: { eyebrow: "CHẾ ĐỘ LUYỆN TẬP", title: "Luyện tập", action: false },
+    history: { eyebrow: "NHẬT KÝ LUYỆN TẬP", title: "Lịch sử", action: false },
+    report: { eyebrow: "THỐNG KÊ", title: "Báo cáo", action: false }
+  };
+
+  const pageEyebrow = document.getElementById("pageEyebrow");
+  const pageTitle = document.getElementById("pageTitle");
+  const headerActionBtn = document.getElementById("headerActionBtn");
+
+  const tabBtns = document.querySelectorAll(".nav-item");
   const views = {
     questions: document.getElementById("view-questions"),
     practice: document.getElementById("view-practice"),
     history: document.getElementById("view-history"),
     report: document.getElementById("view-report")
   };
+
+  function activateTab(tabKey){
+    tabBtns.forEach(b=> b.classList.toggle("active", b.dataset.tab === tabKey));
+    Object.entries(views).forEach(([key, el])=> el.classList.toggle("active", key === tabKey));
+    const h = pageHeaders[tabKey];
+    pageEyebrow.textContent = h.eyebrow;
+    pageTitle.textContent = h.title;
+    headerActionBtn.style.display = h.action ? "inline-block" : "none";
+    if(tabKey === "history") renderHistory();
+    if(tabKey === "report") renderReport();
+  }
+
   tabBtns.forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      tabBtns.forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      Object.values(views).forEach(v=>v.classList.remove("active"));
-      views[btn.dataset.tab].classList.add("active");
-      if(btn.dataset.tab === "history") renderHistory();
-      if(btn.dataset.tab === "report") renderReport();
-    });
+    btn.addEventListener("click", ()=> activateTab(btn.dataset.tab));
+  });
+
+  headerActionBtn.addEventListener("click", ()=>{
+    resetForm();
+    document.getElementById("fQuestion").focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
   /* ---------------- Support rows (form) ---------------- */
@@ -836,7 +968,7 @@
   const qCount = document.getElementById("qCount");
 
   function renderList(){
-    qCount.textContent = questions.length + (questions.length===1 ? " câu hỏi" : " câu hỏi");
+    qCount.textContent = questions.length;
     qList.innerHTML = "";
 
     if(questions.length === 0){
@@ -905,7 +1037,7 @@
     q.supports.forEach(s => makeSupportRow(s));
     saveBtn.textContent = "Cập nhật câu hỏi";
     cancelEditBtn.style.display = "inline-block";
-    document.querySelector('.tab-btn[data-tab="questions"]').click();
+    activateTab("questions");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
