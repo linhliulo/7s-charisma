@@ -1085,6 +1085,11 @@
           </div>
 
           <div class="field">
+            <label for="fLikelyAnswer">Follow-up question — Câu trả lời rất có thể nhận lại được</label>
+            <textarea id="fLikelyAnswer" placeholder="Câu trả lời khả năng cao sẽ nhận được..."></textarea>
+          </div>
+
+          <div class="field">
             <label for="fBetter">Follow-up question — Ta có thể làm tốt hơn</label>
             <textarea id="fBetter" placeholder="Điều có thể trả lời tốt hơn..."></textarea>
           </div>
@@ -1636,6 +1641,7 @@
   const fStatement = document.getElementById("fStatement");
   const fFramework = document.getElementById("fFramework");
   const fCommonQ = document.getElementById("fCommonQ");
+  const fLikelyAnswer = document.getElementById("fLikelyAnswer");
   const fBetter = document.getElementById("fBetter");
   const fFuTag = document.getElementById("fFuTag");
   const fFuDate = document.getElementById("fFuDate");
@@ -1660,6 +1666,7 @@
       statement: statementText,
       framework: fFramework.value.trim(),
       commonQuestions: fCommonQ.value.trim(),
+      likelyAnswer: fLikelyAnswer.value.trim(),
       betterApproach: fBetter.value.trim(),
       tags: fFuTag.value.split(",").map(t=>t.trim()).filter(Boolean),
       createdDate: fFuDate.value || todayISO()
@@ -1764,6 +1771,7 @@
       const blocksHtml = [
         ["Framework", f.framework],
         ["Câu hỏi thông thường", f.commonQuestions],
+        ["Câu trả lời rất có thể nhận lại được", f.likelyAnswer],
         ["Ta có thể làm tốt hơn", f.betterApproach]
       ].filter(([,val])=>val).map(([label,val])=>`
         <div class="block">
@@ -1814,6 +1822,7 @@
     fStatement.value = f.statement;
     fFramework.value = f.framework || "";
     fCommonQ.value = f.commonQuestions || "";
+    fLikelyAnswer.value = f.likelyAnswer || "";
     fBetter.value = f.betterApproach || "";
     fFuTag.value = (f.tags||[]).join(", ");
     fFuDate.value = f.createdDate || todayISO();
@@ -2123,6 +2132,7 @@
     const seq = [];
     if(f.framework) seq.push({ label: "Framework", content: f.framework });
     if(f.commonQuestions) seq.push({ label: "Câu hỏi thông thường", content: f.commonQuestions });
+    if(f.likelyAnswer) seq.push({ label: "Câu trả lời rất có thể nhận lại được", content: f.likelyAnswer });
     if(f.betterApproach) seq.push({ label: "Ta có thể làm tốt hơn", content: f.betterApproach });
     return seq;
   }
@@ -2196,7 +2206,7 @@
     fuStageStatement.classList.add("placeholder");
     fuCompleteBtn.disabled = true;
     fuSkipBtn.disabled = true;
-    fuLoadRevealSequence({ framework:"", commonQuestions:"", betterApproach:"" });
+    fuLoadRevealSequence({ framework:"", commonQuestions:"", likelyAnswer:"", betterApproach:"" });
     fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
 
