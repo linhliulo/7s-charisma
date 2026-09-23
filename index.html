@@ -104,6 +104,7 @@
     border-radius: 10px;
     font-size: 14.5px;
     font-family: var(--sans);
+    line-height: 1.3;
   }
   .nav-item .nav-dot{
     width: 7px;
@@ -130,6 +131,7 @@
     font-family: var(--mono);
     font-size: 11px;
     opacity: 0.75;
+    flex-shrink: 0;
   }
 
   .content{
@@ -197,7 +199,7 @@
   .view{ display: none; }
   .view.active{ display: block; }
 
-  /* ---------- Questions tab ---------- */
+  /* ---------- Questions / Follow-up tab ---------- */
   .panel{
     background: var(--bg-soft);
     border: 1px solid var(--line);
@@ -473,7 +475,7 @@
     padding: 2px 10px;
     margin: 0 4px 4px 0;
   }
-  .ref-text{ color: var(--ink); }
+  .ref-text{ color: var(--ink); white-space: pre-wrap; }
 
   .empty-note{
     color: var(--ink-faint);
@@ -485,6 +487,29 @@
   }
 
   /* ---------- Practice tab ---------- */
+  .practice-subtabs{
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .subtab-btn{
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    border-radius: var(--radius-pill);
+    padding: 9px 22px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .subtab-btn.active{
+    background: var(--dark);
+    color: #f5efe1;
+    border-color: var(--dark);
+  }
+  .practice-pane{ display: none; }
+  .practice-pane.active{ display: block; }
+
   .stage{
     text-align: center;
     padding: 10px 0 6px;
@@ -634,6 +659,7 @@
     padding: 12px 14px;
     margin-bottom: 8px;
     background: var(--bg-soft);
+    text-align: left;
   }
   .reveal-item .block-label{ margin-bottom: 6px; }
   .reveal-item .ref-text{
@@ -856,6 +882,11 @@
     font-size: 11px;
     color: var(--ink-faint);
   }
+  .hist-badges{
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
   .badge{
     font-family: var(--mono);
     font-size: 11px;
@@ -872,6 +903,16 @@
   .badge.skipped{
     color: var(--ink-faint);
     border: 1px solid var(--line-strong);
+  }
+  .badge.type-question{
+    color: var(--ink-dim);
+    border: 1px solid var(--line-strong);
+    background: #fff;
+  }
+  .badge.type-followup{
+    color: #7a6a8a;
+    border: 1px solid #c9b8d6;
+    background: #f1e9f6;
   }
 
   /* ---------- Report tab ---------- */
@@ -953,6 +994,7 @@
     <div class="brand-rule"></div>
     <nav class="side-nav">
       <button class="nav-item active" data-tab="questions"><span class="nav-dot"></span>Câu hỏi<span class="nav-count" id="qCount">0</span></button>
+      <button class="nav-item" data-tab="followup"><span class="nav-dot"></span>Follow-up question<span class="nav-count" id="fuCount">0</span></button>
       <button class="nav-item" data-tab="practice"><span class="nav-dot"></span>Luyện tập</button>
       <button class="nav-item" data-tab="history"><span class="nav-dot"></span>Lịch sử</button>
       <button class="nav-item" data-tab="report"><span class="nav-dot"></span>Báo cáo</button>
@@ -1022,42 +1064,140 @@
 
     </div>
 
+    <!-- ================= FOLLOW-UP QUESTION TAB ================= -->
+    <div class="view" id="view-followup">
+
+      <div class="panel">
+        <form id="fuForm">
+          <div class="field">
+            <label for="fStatement">Thêm nhận định</label>
+            <textarea id="fStatement" required placeholder="Nhập nhận định..."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="fFramework">Follow-up question — Framework</label>
+            <textarea id="fFramework" placeholder="Khung tư duy / framework để trả lời follow-up..."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="fCommonQ">Follow-up question — Câu hỏi thông thường</label>
+            <textarea id="fCommonQ" placeholder="Những câu hỏi thường gặp..."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="fBetter">Follow-up question — Ta có thể làm tốt hơn</label>
+            <textarea id="fBetter" placeholder="Điều có thể trả lời tốt hơn..."></textarea>
+          </div>
+
+          <div class="field">
+            <label>Tag &amp; ngày tạo</label>
+            <div class="row2-even">
+              <input type="text" id="fFuTag" placeholder="Tag, phân cách bằng dấu phẩy" />
+              <input type="date" id="fFuDate" />
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="fuSaveBtn">Lưu nhận định</button>
+            <button type="button" class="btn-ghost" id="fuCancelEditBtn" style="display:none;">Hủy chỉnh sửa</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="list-toolbar">
+        <div class="qlist-title">Danh sách đã lưu</div>
+        <div class="list-controls">
+          <div class="tag-search-wrap">
+            <input type="text" id="fuTagSearchInput" placeholder="Tìm theo tag..." autocomplete="off" />
+            <div class="tag-dropdown" id="fuTagDropdown"></div>
+          </div>
+          <button type="button" class="sort-btn" id="fuSortBtn">Ngày tạo: Mới nhất ↓</button>
+        </div>
+      </div>
+      <div id="fuList"></div>
+
+    </div>
+
     <!-- ================= PRACTICE TAB ================= -->
     <div class="view" id="view-practice">
 
-      <div class="stage">
-        <div class="stage-question placeholder" id="stageQuestion">Bấm "Random câu hỏi" để bắt đầu</div>
+      <div class="practice-subtabs">
+        <button class="subtab-btn active" data-pane="q">Câu hỏi</button>
+        <button class="subtab-btn" data-pane="followup">Follow-up question</button>
+      </div>
 
-        <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
+      <div class="practice-pane active" id="pane-q">
+        <div class="stage">
+          <div class="stage-question placeholder" id="stageQuestion">Bấm "Random câu hỏi" để bắt đầu</div>
 
-        <div class="timer-display" id="timerDisplay">07</div>
+          <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
 
-        <div class="duration-group" id="durationGroup">
-          <button class="duration-btn active" data-secs="7">7s</button>
-          <button class="duration-btn" data-secs="15">15s</button>
-          <button class="duration-btn" data-secs="30">30s</button>
-        </div>
+          <div class="timer-display" id="timerDisplay">07</div>
 
-        <div class="control-group">
-          <button class="btn-start" id="startBtn">Bắt đầu</button>
-          <button class="btn-stop" id="stopBtn" disabled>Dừng</button>
-        </div>
-
-        <div class="status-line" id="statusLine"></div>
-
-        <hr class="divider" />
-
-        <div class="hint-section">
-          <div class="hint-buttons">
-            <button class="btn-hint" id="keywordBtn" disabled>Xem key words</button>
-            <button class="btn-hint" id="samplesBtn" disabled>Xem samples</button>
+          <div class="duration-group" id="durationGroup">
+            <button class="duration-btn active" data-secs="7">7s</button>
+            <button class="duration-btn" data-secs="15">15s</button>
+            <button class="duration-btn" data-secs="30">30s</button>
           </div>
-          <div class="reveal-area" id="revealArea"></div>
-        </div>
 
-        <div class="finish-group">
-          <button class="btn-complete" id="completeBtn" disabled>✓ Hoàn thành luyện tập</button>
-          <button class="btn-skip" id="skipBtn" disabled>Bỏ qua</button>
+          <div class="control-group">
+            <button class="btn-start" id="startBtn">Bắt đầu</button>
+            <button class="btn-stop" id="stopBtn" disabled>Dừng</button>
+          </div>
+
+          <div class="status-line" id="statusLine"></div>
+
+          <hr class="divider" />
+
+          <div class="hint-section">
+            <div class="hint-buttons">
+              <button class="btn-hint" id="keywordBtn" disabled>Xem key words</button>
+              <button class="btn-hint" id="samplesBtn" disabled>Xem samples</button>
+            </div>
+            <div class="reveal-area" id="revealArea"></div>
+          </div>
+
+          <div class="finish-group">
+            <button class="btn-complete" id="completeBtn" disabled>✓ Hoàn thành luyện tập</button>
+            <button class="btn-skip" id="skipBtn" disabled>Bỏ qua</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="practice-pane" id="pane-followup">
+        <div class="stage">
+          <div class="stage-question placeholder" id="fuStageStatement">Bấm "Random nhận định" để bắt đầu</div>
+
+          <button class="random-btn" id="fuRandomBtn">🎲 Random nhận định</button>
+
+          <div class="timer-display" id="fuTimerDisplay">07</div>
+
+          <div class="duration-group" id="fuDurationGroup">
+            <button class="duration-btn active" data-secs="7">7s</button>
+            <button class="duration-btn" data-secs="15">15s</button>
+            <button class="duration-btn" data-secs="30">30s</button>
+          </div>
+
+          <div class="control-group">
+            <button class="btn-start" id="fuStartBtn">Bắt đầu</button>
+            <button class="btn-stop" id="fuStopBtn" disabled>Dừng</button>
+          </div>
+
+          <div class="status-line" id="fuStatusLine"></div>
+
+          <hr class="divider" />
+
+          <div class="hint-section">
+            <div class="hint-buttons">
+              <button class="btn-hint" id="fuRevealBtn" disabled>Hiện Framework</button>
+            </div>
+            <div class="reveal-area" id="fuRevealArea"></div>
+          </div>
+
+          <div class="finish-group">
+            <button class="btn-complete" id="fuCompleteBtn" disabled>✓ Hoàn thành luyện tập</button>
+            <button class="btn-skip" id="fuSkipBtn" disabled>Bỏ qua</button>
+          </div>
         </div>
       </div>
 
@@ -1126,7 +1266,7 @@
 
   const STORAGE_KEY = "speech-practice-questions-v1";
 
-  /* ---------------- Data layer ---------------- */
+  /* ---------------- Data layer: questions ---------------- */
   function loadQuestions(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -1148,6 +1288,30 @@
   let questions = loadQuestions();
   let editingId = null;
 
+  /* ---------------- Data layer: follow-up nhận định ---------------- */
+  const FOLLOWUP_KEY = "speech-practice-followups-v1";
+  function loadFollowups(){
+    try{
+      const raw = localStorage.getItem(FOLLOWUP_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){
+      console.error("Không đọc được dữ liệu nhận định:", e);
+      return [];
+    }
+  }
+  function saveFollowups(list){
+    try{
+      localStorage.setItem(FOLLOWUP_KEY, JSON.stringify(list));
+    }catch(e){
+      console.error("Không lưu được dữ liệu nhận định:", e);
+      alert("Không thể lưu dữ liệu (bộ nhớ trình duyệt có thể đã đầy hoặc bị chặn).");
+    }
+  }
+
+  let followups = loadFollowups();
+  let fuEditingId = null;
+
+  /* ---------------- Data layer: history ---------------- */
   const HISTORY_KEY = "speech-practice-history-v1";
   function loadHistory(){
     try{
@@ -1167,68 +1331,7 @@
   }
   let history = loadHistory();
 
-  /* ---------------- Tabs / page header ---------------- */
-  const pageHeaders = {
-    questions: { eyebrow: "BỘ CÂU HỎI CỦA BẠN", title: "Câu hỏi", action: true },
-    practice: { eyebrow: "CHẾ ĐỘ LUYỆN TẬP", title: "Luyện tập", action: false },
-    history: { eyebrow: "NHẬT KÝ LUYỆN TẬP", title: "Lịch sử", action: false },
-    report: { eyebrow: "THỐNG KÊ", title: "Báo cáo", action: false }
-  };
-
-  const pageEyebrow = document.getElementById("pageEyebrow");
-  const pageTitle = document.getElementById("pageTitle");
-  const headerActionBtn = document.getElementById("headerActionBtn");
-
-  const tabBtns = document.querySelectorAll(".nav-item");
-  const views = {
-    questions: document.getElementById("view-questions"),
-    practice: document.getElementById("view-practice"),
-    history: document.getElementById("view-history"),
-    report: document.getElementById("view-report")
-  };
-
-  function activateTab(tabKey){
-    tabBtns.forEach(b=> b.classList.toggle("active", b.dataset.tab === tabKey));
-    Object.entries(views).forEach(([key, el])=> el.classList.toggle("active", key === tabKey));
-    const h = pageHeaders[tabKey];
-    pageEyebrow.textContent = h.eyebrow;
-    pageTitle.textContent = h.title;
-    headerActionBtn.style.display = h.action ? "inline-block" : "none";
-    if(tabKey === "history"){ renderHistory(); renderStreak(); renderIntensity(); }
-    if(tabKey === "report") renderReport();
-  }
-
-  tabBtns.forEach(btn=>{
-    btn.addEventListener("click", ()=> activateTab(btn.dataset.tab));
-  });
-
-  headerActionBtn.addEventListener("click", ()=>{
-    resetForm();
-    document.getElementById("fQuestion").focus();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-
-  /* ---------------- Support rows (form) ---------------- */
-  const supportListEl = document.getElementById("supportList");
-  const addSupportBtn = document.getElementById("addSupportBtn");
-
-  function makeSupportRow(data){
-    data = data || { keyword: "", ref: "" };
-    const row = document.createElement("div");
-    row.className = "support-item";
-    row.innerHTML = `
-      <button type="button" class="remove-support" aria-label="Xóa ý support">×</button>
-      <div class="row2">
-        <input type="text" class="sup-keyword" placeholder="Từ khóa" value="${escapeAttr(data.keyword)}" />
-        <textarea class="sup-ref" placeholder="Gợi ý tham khảo">${escapeHtml(data.ref)}</textarea>
-      </div>
-    `;
-    row.querySelector(".remove-support").addEventListener("click", ()=> row.remove());
-    supportListEl.appendChild(row);
-  }
-
-  addSupportBtn.addEventListener("click", ()=> makeSupportRow());
-
+  /* ---------------- Helpers ---------------- */
   function escapeHtml(str){
     return (str||"").replace(/[&<>"']/g, c => ({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -1249,7 +1352,83 @@
     return `${parts[2]}/${parts[1]}`;
   }
 
-  /* ---------------- Form submit / reset ---------------- */
+  /* ---------------- Tabs / page header ---------------- */
+  const pageHeaders = {
+    questions: { eyebrow: "BỘ CÂU HỎI CỦA BẠN", title: "Câu hỏi", action: true, actionLabel: "+ Thêm câu hỏi" },
+    followup: { eyebrow: "THƯ VIỆN NHẬN ĐỊNH", title: "Follow-up question", action: true, actionLabel: "+ Thêm nhận định" },
+    practice: { eyebrow: "CHẾ ĐỘ LUYỆN TẬP", title: "Luyện tập", action: false },
+    history: { eyebrow: "NHẬT KÝ LUYỆN TẬP", title: "Lịch sử", action: false },
+    report: { eyebrow: "THỐNG KÊ", title: "Báo cáo", action: false }
+  };
+
+  let activeTabKey = "questions";
+
+  const pageEyebrow = document.getElementById("pageEyebrow");
+  const pageTitle = document.getElementById("pageTitle");
+  const headerActionBtn = document.getElementById("headerActionBtn");
+
+  const tabBtns = document.querySelectorAll(".nav-item");
+  const views = {
+    questions: document.getElementById("view-questions"),
+    followup: document.getElementById("view-followup"),
+    practice: document.getElementById("view-practice"),
+    history: document.getElementById("view-history"),
+    report: document.getElementById("view-report")
+  };
+
+  function activateTab(tabKey){
+    activeTabKey = tabKey;
+    tabBtns.forEach(b=> b.classList.toggle("active", b.dataset.tab === tabKey));
+    Object.entries(views).forEach(([key, el])=> el.classList.toggle("active", key === tabKey));
+    const h = pageHeaders[tabKey];
+    pageEyebrow.textContent = h.eyebrow;
+    pageTitle.textContent = h.title;
+    headerActionBtn.style.display = h.action ? "inline-block" : "none";
+    headerActionBtn.textContent = h.actionLabel || "";
+    if(tabKey === "followup") renderFollowupList();
+    if(tabKey === "history"){ renderHistory(); renderStreak(); renderIntensity(); }
+    if(tabKey === "report") renderReport();
+  }
+
+  tabBtns.forEach(btn=>{
+    btn.addEventListener("click", ()=> activateTab(btn.dataset.tab));
+  });
+
+  headerActionBtn.addEventListener("click", ()=>{
+    if(activeTabKey === "followup"){
+      resetFollowupForm();
+      document.getElementById("fStatement").focus();
+    } else {
+      resetForm();
+      document.getElementById("fQuestion").focus();
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  /* ==================================================================
+     QUESTIONS TAB
+  ================================================================== */
+
+  const supportListEl = document.getElementById("supportList");
+  const addSupportBtn = document.getElementById("addSupportBtn");
+
+  function makeSupportRow(data){
+    data = data || { keyword: "", ref: "" };
+    const row = document.createElement("div");
+    row.className = "support-item";
+    row.innerHTML = `
+      <button type="button" class="remove-support" aria-label="Xóa ý support">×</button>
+      <div class="row2">
+        <input type="text" class="sup-keyword" placeholder="Từ khóa" value="${escapeAttr(data.keyword)}" />
+        <textarea class="sup-ref" placeholder="Gợi ý tham khảo">${escapeHtml(data.ref)}</textarea>
+      </div>
+    `;
+    row.querySelector(".remove-support").addEventListener("click", ()=> row.remove());
+    supportListEl.appendChild(row);
+  }
+
+  addSupportBtn.addEventListener("click", ()=> makeSupportRow());
+
   const qForm = document.getElementById("qForm");
   const fQuestion = document.getElementById("fQuestion");
   const fCoreKeyword = document.getElementById("fCoreKeyword");
@@ -1302,13 +1481,12 @@
 
   cancelEditBtn.addEventListener("click", resetForm);
 
-  /* ---------------- List rendering ---------------- */
   const qList = document.getElementById("qList");
   const qCount = document.getElementById("qCount");
   const sortBtn = document.getElementById("sortBtn");
   const tagSearchInput = document.getElementById("tagSearchInput");
   const tagDropdown = document.getElementById("tagDropdown");
-  const tagSearchWrap = document.querySelector(".tag-search-wrap");
+  const tagSearchWrap = tagSearchInput.closest(".tag-search-wrap");
 
   let sortOrder = "newest";
   let tagFilter = "";
@@ -1450,7 +1628,220 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  /* ---------------- Practice tab ---------------- */
+  /* ==================================================================
+     FOLLOW-UP QUESTION TAB
+  ================================================================== */
+
+  const fuForm = document.getElementById("fuForm");
+  const fStatement = document.getElementById("fStatement");
+  const fFramework = document.getElementById("fFramework");
+  const fCommonQ = document.getElementById("fCommonQ");
+  const fBetter = document.getElementById("fBetter");
+  const fFuTag = document.getElementById("fFuTag");
+  const fFuDate = document.getElementById("fFuDate");
+  const fuSaveBtn = document.getElementById("fuSaveBtn");
+  const fuCancelEditBtn = document.getElementById("fuCancelEditBtn");
+
+  function resetFollowupForm(){
+    fuForm.reset();
+    fuEditingId = null;
+    fFuDate.value = todayISO();
+    fuSaveBtn.textContent = "Lưu nhận định";
+    fuCancelEditBtn.style.display = "none";
+  }
+
+  fuForm.addEventListener("submit", (e)=>{
+    e.preventDefault();
+    const statementText = fStatement.value.trim();
+    if(!statementText){ return; }
+
+    const record = {
+      id: fuEditingId || (Date.now().toString(36) + Math.random().toString(36).slice(2,7)),
+      statement: statementText,
+      framework: fFramework.value.trim(),
+      commonQuestions: fCommonQ.value.trim(),
+      betterApproach: fBetter.value.trim(),
+      tags: fFuTag.value.split(",").map(t=>t.trim()).filter(Boolean),
+      createdDate: fFuDate.value || todayISO()
+    };
+
+    if(fuEditingId){
+      const idx = followups.findIndex(f=>f.id===fuEditingId);
+      if(idx > -1) followups[idx] = record;
+    } else {
+      followups.push(record);
+    }
+
+    saveFollowups(followups);
+    resetFollowupForm();
+    renderFollowupList();
+  });
+
+  fuCancelEditBtn.addEventListener("click", resetFollowupForm);
+
+  const fuList = document.getElementById("fuList");
+  const fuCount = document.getElementById("fuCount");
+  const fuSortBtn = document.getElementById("fuSortBtn");
+  const fuTagSearchInput = document.getElementById("fuTagSearchInput");
+  const fuTagDropdown = document.getElementById("fuTagDropdown");
+  const fuTagSearchWrap = fuTagSearchInput.closest(".tag-search-wrap");
+
+  let fuSortOrder = "newest";
+  let fuTagFilter = "";
+
+  function getAllFuTags(){
+    const set = new Set();
+    followups.forEach(f => (f.tags||[]).forEach(t => set.add(t)));
+    return Array.from(set).sort((a,b)=> a.localeCompare(b));
+  }
+
+  fuSortBtn.addEventListener("click", ()=>{
+    fuSortOrder = fuSortOrder === "newest" ? "oldest" : "newest";
+    fuSortBtn.textContent = fuSortOrder === "newest" ? "Ngày tạo: Mới nhất ↓" : "Ngày tạo: Cũ nhất ↑";
+    renderFollowupList();
+  });
+
+  function hideFuTagDropdown(){ fuTagDropdown.classList.remove("open"); }
+
+  function renderFuTagDropdown(){
+    const val = fuTagSearchInput.value.trim().toLowerCase();
+    if(!val){ hideFuTagDropdown(); fuTagDropdown.innerHTML = ""; return; }
+    const matches = getAllFuTags().filter(t => t.toLowerCase().includes(val));
+    if(matches.length === 0){ hideFuTagDropdown(); fuTagDropdown.innerHTML = ""; return; }
+    fuTagDropdown.innerHTML = matches.map(t=>`<div class="tag-option" data-tag="${escapeAttr(t)}">${escapeHtml(t)}</div>`).join("");
+    fuTagDropdown.classList.add("open");
+    fuTagDropdown.querySelectorAll(".tag-option").forEach(opt=>{
+      opt.addEventListener("click", ()=>{
+        fuTagSearchInput.value = opt.dataset.tag;
+        fuTagFilter = opt.dataset.tag;
+        hideFuTagDropdown();
+        renderFollowupList();
+      });
+    });
+  }
+
+  fuTagSearchInput.addEventListener("input", ()=>{
+    fuTagFilter = fuTagSearchInput.value.trim();
+    renderFuTagDropdown();
+    renderFollowupList();
+  });
+  fuTagSearchInput.addEventListener("focus", renderFuTagDropdown);
+  document.addEventListener("click", (e)=>{
+    if(!fuTagSearchWrap.contains(e.target)) hideFuTagDropdown();
+  });
+
+  function renderFollowupList(){
+    fuCount.textContent = followups.length;
+
+    let filtered = followups;
+    if(fuTagFilter){
+      const needle = fuTagFilter.toLowerCase();
+      filtered = filtered.filter(f => (f.tags||[]).some(t => t.toLowerCase().includes(needle)));
+    }
+    filtered = [...filtered].sort((a,b)=>{
+      const da = a.createdDate || "";
+      const db = b.createdDate || "";
+      return fuSortOrder === "newest" ? db.localeCompare(da) : da.localeCompare(db);
+    });
+
+    fuList.innerHTML = "";
+
+    if(followups.length === 0){
+      fuList.innerHTML = `<div class="empty-note">Chưa có nhận định nào. Thêm nhận định đầu tiên ở form phía trên.</div>`;
+      return;
+    }
+    if(filtered.length === 0){
+      fuList.innerHTML = `<div class="empty-note">Không tìm thấy nhận định nào với tag "${escapeHtml(fuTagFilter)}".</div>`;
+      return;
+    }
+
+    filtered.forEach(f=>{
+      const card = document.createElement("div");
+      card.className = "qcard";
+
+      const tagsHtml = (f.tags||[]).map(t=>`<span class="tag-chip">${escapeHtml(t)}</span>`).join("");
+
+      const blocksHtml = [
+        ["Framework", f.framework],
+        ["Câu hỏi thông thường", f.commonQuestions],
+        ["Ta có thể làm tốt hơn", f.betterApproach]
+      ].filter(([,val])=>val).map(([label,val])=>`
+        <div class="block">
+          <div class="block-label">${escapeHtml(label)}</div>
+          <div class="ref-text">${escapeHtml(val)}</div>
+        </div>
+      `).join("");
+
+      card.innerHTML = `
+        <div class="qcard-head">
+          <div class="qcard-date">${formatDateStr(f.createdDate)}</div>
+          <div class="qcard-q">${escapeHtml(f.statement)}</div>
+          <div class="qcard-tags">${tagsHtml}</div>
+          <div class="qcard-actions">
+            <button class="icon-btn edit-btn" title="Sửa">Sửa</button>
+            <button class="icon-btn danger delete-btn" title="Xóa">Xóa</button>
+          </div>
+        </div>
+        <div class="qcard-body">
+          ${blocksHtml || `<div class="block"><div class="ref-text">Chưa có nội dung follow-up.</div></div>`}
+        </div>
+      `;
+
+      card.querySelector(".qcard-q").addEventListener("click", ()=>{
+        card.querySelector(".qcard-body").classList.toggle("open");
+      });
+      card.querySelector(".edit-btn").addEventListener("click", (e)=>{
+        e.stopPropagation();
+        startFuEdit(f.id);
+      });
+      card.querySelector(".delete-btn").addEventListener("click", (e)=>{
+        e.stopPropagation();
+        if(confirm("Xóa nhận định này?")){
+          followups = followups.filter(x=>x.id !== f.id);
+          saveFollowups(followups);
+          renderFollowupList();
+        }
+      });
+
+      fuList.appendChild(card);
+    });
+  }
+
+  function startFuEdit(id){
+    const f = followups.find(x=>x.id===id);
+    if(!f) return;
+    fuEditingId = id;
+    fStatement.value = f.statement;
+    fFramework.value = f.framework || "";
+    fCommonQ.value = f.commonQuestions || "";
+    fBetter.value = f.betterApproach || "";
+    fFuTag.value = (f.tags||[]).join(", ");
+    fFuDate.value = f.createdDate || todayISO();
+    fuSaveBtn.textContent = "Cập nhật nhận định";
+    fuCancelEditBtn.style.display = "inline-block";
+    activateTab("followup");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* ==================================================================
+     PRACTICE TAB — sub-tab switching
+  ================================================================== */
+
+  const subtabBtns = document.querySelectorAll(".subtab-btn");
+  const practicePanes = {
+    q: document.getElementById("pane-q"),
+    followup: document.getElementById("pane-followup")
+  };
+  subtabBtns.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      subtabBtns.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      Object.values(practicePanes).forEach(p=>p.classList.remove("active"));
+      practicePanes[btn.dataset.pane].classList.add("active");
+    });
+  });
+
+  /* ---------------- Practice: Câu hỏi ---------------- */
   const stageQuestion = document.getElementById("stageQuestion");
   const randomBtn = document.getElementById("randomBtn");
   const timerDisplay = document.getElementById("timerDisplay");
@@ -1524,7 +1915,6 @@
     statusLine.textContent = "";
   });
 
-  /* ---------------- Gợi ý: key words & samples ---------------- */
   function buildSequence(q){
     const seq = [];
     if(q.coreKeyword || q.coreRef){
@@ -1591,11 +1981,11 @@
     renderReveal();
   });
 
-  /* ---------------- Hoàn thành / Bỏ qua ---------------- */
   function logAttempt(result){
     if(!currentQuestion) return;
     history.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      type: "question",
       questionId: currentQuestion.id,
       question: currentQuestion.question,
       duration: selectedDuration,
@@ -1661,7 +2051,198 @@
     statusLine.textContent = "Đã dừng.";
   });
 
-  /* ---------------- History tab ---------------- */
+  /* ---------------- Practice: Follow-up question ---------------- */
+  const fuStageStatement = document.getElementById("fuStageStatement");
+  const fuRandomBtn = document.getElementById("fuRandomBtn");
+  const fuTimerDisplay = document.getElementById("fuTimerDisplay");
+  const fuDurationGroup = document.getElementById("fuDurationGroup");
+  const fuDurationBtns = fuDurationGroup.querySelectorAll(".duration-btn");
+  const fuStartBtn = document.getElementById("fuStartBtn");
+  const fuStopBtn = document.getElementById("fuStopBtn");
+  const fuStatusLine = document.getElementById("fuStatusLine");
+  const fuRevealBtn = document.getElementById("fuRevealBtn");
+  const fuRevealArea = document.getElementById("fuRevealArea");
+  const fuCompleteBtn = document.getElementById("fuCompleteBtn");
+  const fuSkipBtn = document.getElementById("fuSkipBtn");
+
+  let fuSelectedDuration = 7;
+  let fuRemaining = fuSelectedDuration;
+  let fuIntervalId = null;
+  let lastFollowupId = null;
+  let currentFollowup = null;
+  let fuRevealSequence = [];
+  let fuRevealedCount = 0;
+
+  function fuUpdateTimerDisplay(){
+    fuTimerDisplay.textContent = formatTime(fuRemaining);
+    fuTimerDisplay.classList.remove("warn", "done");
+    if(fuRemaining === 0){
+      fuTimerDisplay.classList.add("done");
+    } else if(fuRemaining <= Math.max(2, Math.round(fuSelectedDuration * 0.25))){
+      fuTimerDisplay.classList.add("warn");
+    }
+  }
+
+  fuDurationBtns.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(fuIntervalId) return;
+      fuDurationBtns.forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      fuSelectedDuration = parseInt(btn.dataset.secs, 10);
+      fuRemaining = fuSelectedDuration;
+      fuUpdateTimerDisplay();
+      fuStatusLine.textContent = "";
+    });
+  });
+
+  fuRandomBtn.addEventListener("click", ()=>{
+    if(followups.length === 0){
+      fuStageStatement.textContent = "Chưa có nhận định nào — hãy thêm ở tab \"Follow-up question\" trước.";
+      fuStageStatement.classList.add("placeholder");
+      return;
+    }
+    let pick;
+    if(followups.length === 1){
+      pick = followups[0];
+    } else {
+      do{
+        pick = followups[Math.floor(Math.random() * followups.length)];
+      } while(pick.id === lastFollowupId);
+    }
+    lastFollowupId = pick.id;
+    currentFollowup = pick;
+    fuStageStatement.textContent = pick.statement;
+    fuStageStatement.classList.remove("placeholder");
+    fuLoadRevealSequence(pick);
+    fuCompleteBtn.disabled = false;
+    fuSkipBtn.disabled = false;
+    fuStatusLine.textContent = "";
+  });
+
+  function fuBuildSequence(f){
+    const seq = [];
+    if(f.framework) seq.push({ label: "Framework", content: f.framework });
+    if(f.commonQuestions) seq.push({ label: "Câu hỏi thông thường", content: f.commonQuestions });
+    if(f.betterApproach) seq.push({ label: "Ta có thể làm tốt hơn", content: f.betterApproach });
+    return seq;
+  }
+
+  function fuLoadRevealSequence(f){
+    fuRevealSequence = fuBuildSequence(f);
+    fuRevealedCount = 0;
+    fuRenderReveal();
+  }
+
+  function fuRenderReveal(){
+    const total = fuRevealSequence.length;
+
+    if(total === 0){
+      fuRevealBtn.disabled = true;
+      fuRevealBtn.textContent = "Hiện Framework";
+      fuRevealArea.innerHTML = "";
+      return;
+    }
+
+    if(fuRevealedCount >= total){
+      fuRevealBtn.disabled = true;
+      fuRevealBtn.textContent = "Đã hiện hết";
+    } else {
+      fuRevealBtn.disabled = false;
+      fuRevealBtn.textContent = "Hiện " + fuRevealSequence[fuRevealedCount].label;
+    }
+
+    fuRevealArea.innerHTML = "";
+    for(let i=0; i<fuRevealedCount; i++){
+      const item = fuRevealSequence[i];
+      const div = document.createElement("div");
+      div.className = "reveal-item";
+      div.innerHTML = `
+        <div class="block-label">${escapeHtml(item.label)}</div>
+        <div class="ref-text">${escapeHtml(item.content)}</div>
+      `;
+      fuRevealArea.appendChild(div);
+    }
+  }
+
+  fuRevealBtn.addEventListener("click", ()=>{
+    if(fuRevealedCount >= fuRevealSequence.length) return;
+    fuRevealedCount += 1;
+    fuRenderReveal();
+  });
+
+  function fuLogAttempt(result){
+    if(!currentFollowup) return;
+    history.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      type: "followup",
+      questionId: currentFollowup.id,
+      question: currentFollowup.statement,
+      duration: fuSelectedDuration,
+      result: result,
+      timestamp: Date.now()
+    });
+    saveHistory(history);
+
+    if(fuIntervalId){
+      clearInterval(fuIntervalId);
+      fuIntervalId = null;
+    }
+    fuSetRunningState(false);
+    fuRemaining = fuSelectedDuration;
+    fuUpdateTimerDisplay();
+
+    currentFollowup = null;
+    fuStageStatement.textContent = "Bấm \"Random nhận định\" để tiếp tục";
+    fuStageStatement.classList.add("placeholder");
+    fuCompleteBtn.disabled = true;
+    fuSkipBtn.disabled = true;
+    fuLoadRevealSequence({ framework:"", commonQuestions:"", betterApproach:"" });
+    fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
+  }
+
+  fuCompleteBtn.addEventListener("click", ()=> fuLogAttempt("completed"));
+  fuSkipBtn.addEventListener("click", ()=> fuLogAttempt("skipped"));
+
+  function fuSetRunningState(running){
+    fuStartBtn.disabled = running;
+    fuStopBtn.disabled = !running;
+    fuRandomBtn.disabled = running;
+    fuDurationBtns.forEach(b=> b.disabled = running);
+  }
+
+  fuStartBtn.addEventListener("click", ()=>{
+    if(fuIntervalId) return;
+    fuRemaining = fuSelectedDuration;
+    fuUpdateTimerDisplay();
+    fuSetRunningState(true);
+    fuStatusLine.textContent = "Đang nói...";
+
+    fuIntervalId = setInterval(()=>{
+      fuRemaining -= 1;
+      fuUpdateTimerDisplay();
+      if(fuRemaining <= 0){
+        clearInterval(fuIntervalId);
+        fuIntervalId = null;
+        fuSetRunningState(false);
+        fuStatusLine.textContent = "Hết giờ.";
+      }
+    }, 1000);
+  });
+
+  fuStopBtn.addEventListener("click", ()=>{
+    if(fuIntervalId){
+      clearInterval(fuIntervalId);
+      fuIntervalId = null;
+    }
+    fuRemaining = fuSelectedDuration;
+    fuUpdateTimerDisplay();
+    fuSetRunningState(false);
+    fuStatusLine.textContent = "Đã dừng.";
+  });
+
+  /* ==================================================================
+     HISTORY TAB
+  ================================================================== */
   const historyList = document.getElementById("historyList");
   const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
@@ -1669,6 +2250,10 @@
     const d = new Date(ts);
     const pad = n => String(n).padStart(2, "0");
     return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function typeLabel(type){
+    return type === "followup" ? "Nhận định" : "Câu hỏi";
   }
 
   function renderHistory(){
@@ -1683,7 +2268,10 @@
           <div class="hist-question">${escapeHtml(h.question)}</div>
           <div class="hist-meta">${formatDateTime(h.timestamp)} · ${h.duration}s</div>
         </div>
-        <span class="badge ${h.result}">${h.result === "completed" ? "Hoàn thành" : "Bỏ qua"}</span>
+        <div class="hist-badges">
+          <span class="badge type-${h.type||'question'}">${typeLabel(h.type)}</span>
+          <span class="badge ${h.result}">${h.result === "completed" ? "Hoàn thành" : "Bỏ qua"}</span>
+        </div>
       </div>
     `).join("");
   }
@@ -1710,7 +2298,6 @@
   }
 
   function mondayIndex(date){
-    // Mon=0 ... Sun=6
     return (date.getDay() + 6) % 7;
   }
 
@@ -1772,7 +2359,6 @@
   function renderStreak(){
     const dateSet = getCompletedDateSet();
 
-    // Day labels: Th2, blank, Th4, blank, Th6, blank, blank
     streakDayLabels.innerHTML = ["T2","","T4","","T6","",""].map(l=>`<span>${l}</span>`).join("");
 
     const today = new Date();
@@ -1813,7 +2399,7 @@
     }
     streakGrid.innerHTML = cellsHtml;
 
-    const cellStep = 16; // 13px cell + 3px gap
+    const cellStep = 16;
     streakMonths.innerHTML = monthMarks.map(m=>`<span style="left:${m.col * cellStep}px">${m.label}</span>`).join("");
 
     currentStreakNum.textContent = computeCurrentStreak(dateSet);
@@ -1882,7 +2468,9 @@
     }
   });
 
-  /* ---------------- Report tab ---------------- */
+  /* ==================================================================
+     REPORT TAB
+  ================================================================== */
   const reportSummary = document.getElementById("reportSummary");
   const reportTableWrap = document.getElementById("reportTableWrap");
 
@@ -1912,9 +2500,10 @@
 
     const groups = {};
     history.forEach(h=>{
-      const key = h.question;
+      const type = h.type || "question";
+      const key = type + "||" + h.question;
       if(!groups[key]){
-        groups[key] = { question: h.question, completed: 0, skipped: 0, last: 0 };
+        groups[key] = { type, question: h.question, completed: 0, skipped: 0, last: 0 };
       }
       if(h.result === "completed") groups[key].completed += 1;
       else groups[key].skipped += 1;
@@ -1933,7 +2522,8 @@
       <table class="report-table">
         <thead>
           <tr>
-            <th>Câu hỏi</th>
+            <th>Loại</th>
+            <th>Câu hỏi / Nhận định</th>
             <th style="text-align:center;">Hoàn thành</th>
             <th style="text-align:center;">Bỏ qua</th>
             <th>Lần cuối</th>
@@ -1942,6 +2532,7 @@
         <tbody>
           ${rows.map(r=>`
             <tr>
+              <td>${typeLabel(r.type)}</td>
               <td class="q-cell">
                 ${escapeHtml(r.question)}
                 <div class="bar-track"><div class="bar-fill" style="width:${(r.completed/maxCompleted*100).toFixed(0)}%"></div></div>
@@ -1958,9 +2549,13 @@
 
   /* ---------------- Init ---------------- */
   fUploadDate.value = todayISO();
+  fFuDate.value = todayISO();
   updateTimerDisplay();
+  fuUpdateTimerDisplay();
   renderList();
+  renderFollowupList();
   renderReveal();
+  fuRenderReveal();
 
 })();
 </script>
