@@ -530,9 +530,15 @@
   }
   .stage-question.placeholder{ color: var(--ink-faint); font-size: 14px; }
 
+  .stage-actions{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 34px;
+  }
   .random-btn{
-    display: block;
-    margin: 0 auto 34px;
     background: none;
     border: 1px solid var(--gold-dim);
     color: var(--gold);
@@ -546,6 +552,17 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+  .stage-edit-btn{
+    background: none;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    border-radius: var(--radius-pill);
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .stage-edit-btn:hover{ border-color: var(--ink-faint); color: var(--ink); }
+  .stage-edit-btn:disabled{ opacity: 0.4; cursor: not-allowed; }
 
   .timer-display{
     font-family: var(--mono);
@@ -916,6 +933,27 @@
   }
 
   /* ---------- Report tab ---------- */
+  .report-columns{
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+  }
+  .report-columns .report-section{
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+  @media (max-width: 760px){
+    .report-columns{ flex-direction: column; }
+    .report-columns .report-section{ width: 100%; }
+  }
+  .report-section-title{
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
   .report-summary{
     display: flex;
     gap: 10px;
@@ -1135,7 +1173,10 @@
         <div class="stage">
           <div class="stage-question placeholder" id="stageQuestion">Bấm "Random câu hỏi" để bắt đầu</div>
 
-          <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
+          <div class="stage-actions">
+            <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
+            <button class="stage-edit-btn" id="editQBtn" disabled>✎ Sửa</button>
+          </div>
 
           <div class="timer-display" id="timerDisplay">07</div>
 
@@ -1173,7 +1214,10 @@
         <div class="stage">
           <div class="stage-question placeholder" id="fuStageStatement">Bấm "Random nhận định" để bắt đầu</div>
 
-          <button class="random-btn" id="fuRandomBtn">🎲 Random nhận định</button>
+          <div class="stage-actions">
+            <button class="random-btn" id="fuRandomBtn">🎲 Random nhận định</button>
+            <button class="stage-edit-btn" id="fuEditBtn" disabled>✎ Sửa</button>
+          </div>
 
           <div class="timer-display" id="fuTimerDisplay">07</div>
 
@@ -1257,8 +1301,19 @@
 
     <!-- ================= REPORT TAB ================= -->
     <div class="view" id="view-report">
-      <div class="report-summary" id="reportSummary"></div>
-      <div id="reportTableWrap"></div>
+      <div class="report-columns">
+        <div class="report-section">
+          <h2 class="report-section-title">Câu hỏi</h2>
+          <div class="report-summary" id="reportSummaryQ"></div>
+          <div id="reportTableWrapQ"></div>
+        </div>
+
+        <div class="report-section">
+          <h2 class="report-section-title">Follow-up question</h2>
+          <div class="report-summary" id="reportSummaryFu"></div>
+          <div id="reportTableWrapFu"></div>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -1480,6 +1535,11 @@
     }
 
     saveQuestions(questions);
+    if(currentQuestion && currentQuestion.id === record.id){
+      currentQuestion = record;
+      stageQuestion.textContent = record.question;
+      loadRevealSequence(record);
+    }
     resetForm();
     renderList();
   });
@@ -1680,6 +1740,11 @@
     }
 
     saveFollowups(followups);
+    if(currentFollowup && currentFollowup.id === record.id){
+      currentFollowup = record;
+      fuStageStatement.textContent = record.statement;
+      fuLoadRevealSequence(record);
+    }
     resetFollowupForm();
     renderFollowupList();
   });
@@ -1864,6 +1929,7 @@
   const revealArea = document.getElementById("revealArea");
   const completeBtn = document.getElementById("completeBtn");
   const skipBtn = document.getElementById("skipBtn");
+  const editQBtn = document.getElementById("editQBtn");
 
   let selectedDuration = 7;
   let remaining = selectedDuration;
@@ -1921,6 +1987,7 @@
     loadRevealSequence(pick);
     completeBtn.disabled = false;
     skipBtn.disabled = false;
+    editQBtn.disabled = false;
     statusLine.textContent = "";
   });
 
@@ -2016,12 +2083,16 @@
     stageQuestion.classList.add("placeholder");
     completeBtn.disabled = true;
     skipBtn.disabled = true;
+    editQBtn.disabled = true;
     loadRevealSequence({ coreKeyword:"", coreRef:"", supports: [] });
     statusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
 
   completeBtn.addEventListener("click", ()=> logAttempt("completed"));
   skipBtn.addEventListener("click", ()=> logAttempt("skipped"));
+  editQBtn.addEventListener("click", ()=>{
+    if(currentQuestion) startEdit(currentQuestion.id);
+  });
 
   function setRunningState(running){
     startBtn.disabled = running;
@@ -2073,6 +2144,7 @@
   const fuRevealArea = document.getElementById("fuRevealArea");
   const fuCompleteBtn = document.getElementById("fuCompleteBtn");
   const fuSkipBtn = document.getElementById("fuSkipBtn");
+  const fuEditBtn = document.getElementById("fuEditBtn");
 
   let fuSelectedDuration = 7;
   let fuRemaining = fuSelectedDuration;
@@ -2125,6 +2197,7 @@
     fuLoadRevealSequence(pick);
     fuCompleteBtn.disabled = false;
     fuSkipBtn.disabled = false;
+    fuEditBtn.disabled = false;
     fuStatusLine.textContent = "";
   });
 
@@ -2206,12 +2279,16 @@
     fuStageStatement.classList.add("placeholder");
     fuCompleteBtn.disabled = true;
     fuSkipBtn.disabled = true;
+    fuEditBtn.disabled = true;
     fuLoadRevealSequence({ framework:"", commonQuestions:"", likelyAnswer:"", betterApproach:"" });
     fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
 
   fuCompleteBtn.addEventListener("click", ()=> fuLogAttempt("completed"));
   fuSkipBtn.addEventListener("click", ()=> fuLogAttempt("skipped"));
+  fuEditBtn.addEventListener("click", ()=>{
+    if(currentFollowup) startFuEdit(currentFollowup.id);
+  });
 
   function fuSetRunningState(running){
     fuStartBtn.disabled = running;
@@ -2248,6 +2325,22 @@
     fuUpdateTimerDisplay();
     fuSetRunningState(false);
     fuStatusLine.textContent = "Đã dừng.";
+  });
+
+  /* ---------------- Phím tắt: Enter = Hoàn thành ---------------- */
+  document.addEventListener("keydown", (e)=>{
+    if(e.key !== "Enter") return;
+    if(!views.practice.classList.contains("active")) return;
+
+    const tag = (document.activeElement && document.activeElement.tagName) || "";
+    if(tag === "INPUT" || tag === "TEXTAREA") return;
+
+    e.preventDefault();
+    if(practicePanes.q.classList.contains("active")){
+      if(!completeBtn.disabled) completeBtn.click();
+    } else if(practicePanes.followup.classList.contains("active")){
+      if(!fuCompleteBtn.disabled) fuCompleteBtn.click();
+    }
   });
 
   /* ==================================================================
@@ -2481,80 +2574,71 @@
   /* ==================================================================
      REPORT TAB
   ================================================================== */
-  const reportSummary = document.getElementById("reportSummary");
-  const reportTableWrap = document.getElementById("reportTableWrap");
+  const reportSummaryQ = document.getElementById("reportSummaryQ");
+  const reportTableWrapQ = document.getElementById("reportTableWrapQ");
+  const reportSummaryFu = document.getElementById("reportSummaryFu");
+  const reportTableWrapFu = document.getElementById("reportTableWrapFu");
 
-  function renderReport(){
-    const totalCompleted = history.filter(h=>h.result==="completed").length;
-    const totalSkipped = history.filter(h=>h.result==="skipped").length;
-
-    reportSummary.innerHTML = `
+  function renderReportSection(entries, summaryEl, tableEl, emptyLabel, colLabel){
+    summaryEl.innerHTML = `
       <div class="summary-card">
-        <div class="summary-num">${history.length}</div>
+        <div class="summary-num">${entries.length}</div>
         <div class="summary-label">Tổng lượt luyện tập</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-num">${totalCompleted}</div>
-        <div class="summary-label">Hoàn thành</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-num">${totalSkipped}</div>
-        <div class="summary-label">Bỏ qua</div>
       </div>
     `;
 
-    if(history.length === 0){
-      reportTableWrap.innerHTML = `<div class="empty-note">Chưa có dữ liệu để thống kê.</div>`;
+    if(entries.length === 0){
+      tableEl.innerHTML = `<div class="empty-note">Chưa có dữ liệu ${emptyLabel} để thống kê.</div>`;
       return;
     }
 
     const groups = {};
-    history.forEach(h=>{
-      const type = h.type || "question";
-      const key = type + "||" + h.question;
+    entries.forEach(h=>{
+      const key = h.question;
       if(!groups[key]){
-        groups[key] = { type, question: h.question, completed: 0, skipped: 0, last: 0 };
+        groups[key] = { question: h.question, completed: 0, last: 0 };
       }
       if(h.result === "completed") groups[key].completed += 1;
-      else groups[key].skipped += 1;
       if(h.timestamp > groups[key].last) groups[key].last = h.timestamp;
     });
 
     const rows = Object.values(groups).sort((a,b)=>{
-      const totalA = a.completed + a.skipped, totalB = b.completed + b.skipped;
-      if(totalB !== totalA) return totalB - totalA;
-      return b.completed - a.completed;
+      if(b.completed !== a.completed) return b.completed - a.completed;
+      return b.last - a.last;
     });
 
     const maxCompleted = Math.max(1, ...rows.map(r=>r.completed));
 
-    reportTableWrap.innerHTML = `
+    tableEl.innerHTML = `
       <table class="report-table">
         <thead>
           <tr>
-            <th>Loại</th>
-            <th>Câu hỏi / Nhận định</th>
+            <th>${colLabel}</th>
             <th style="text-align:center;">Hoàn thành</th>
-            <th style="text-align:center;">Bỏ qua</th>
             <th>Lần cuối</th>
           </tr>
         </thead>
         <tbody>
           ${rows.map(r=>`
             <tr>
-              <td>${typeLabel(r.type)}</td>
               <td class="q-cell">
                 ${escapeHtml(r.question)}
                 <div class="bar-track"><div class="bar-fill" style="width:${(r.completed/maxCompleted*100).toFixed(0)}%"></div></div>
               </td>
               <td class="num-cell">${r.completed}</td>
-              <td class="num-cell">${r.skipped}</td>
               <td>${formatDateTime(r.last)}</td>
             </tr>
           `).join("")}
         </tbody>
       </table>
     `;
+  }
+
+  function renderReport(){
+    const qEntries = history.filter(h => (h.type || "question") === "question");
+    const fuEntries = history.filter(h => h.type === "followup");
+    renderReportSection(qEntries, reportSummaryQ, reportTableWrapQ, "câu hỏi", "Câu hỏi");
+    renderReportSection(fuEntries, reportSummaryFu, reportTableWrapFu, "nhận định", "Nhận định");
   }
 
   /* ---------------- Init ---------------- */
