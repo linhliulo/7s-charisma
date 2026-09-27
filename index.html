@@ -1936,7 +1936,25 @@
   const editQBtn = document.getElementById("editQBtn");
   const speakQBtn = document.getElementById("speakQBtn");
 
-  function speakText(text, btn, idleLabel){
+  let cachedVoices = [];
+  function loadVoices(){
+    if("speechSynthesis" in window){
+      cachedVoices = window.speechSynthesis.getVoices();
+    }
+  }
+  loadVoices();
+  if("speechSynthesis" in window){
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  function getVietnameseVoice(){
+    if(!cachedVoices.length) loadVoices();
+    return cachedVoices.find(v => v.lang === "vi-VN")
+      || cachedVoices.find(v => v.lang && v.lang.toLowerCase().startsWith("vi"))
+      || null;
+  }
+
+  function speakText(text, btn, idleLabel, statusEl){
     if(!("speechSynthesis" in window)){
       alert("Trình duyệt của bạn không hỗ trợ tính năng đọc văn bản.");
       return;
@@ -1947,7 +1965,14 @@
       return;
     }
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "vi-VN";
+    const viVoice = getVietnameseVoice();
+    if(viVoice){
+      utter.voice = viVoice;
+      utter.lang = viVoice.lang;
+    } else {
+      utter.lang = "vi-VN";
+      if(statusEl) statusEl.textContent = "Máy này chưa có giọng đọc tiếng Việt nên có thể sẽ đọc bằng giọng khác — xem cách cài thêm giọng ở cuối trang.";
+    }
     utter.rate = 0.95;
     utter.onstart = () => { btn.textContent = "⏹ Dừng đọc"; };
     utter.onend = () => { btn.textContent = idleLabel; };
@@ -2130,7 +2155,7 @@
     if(currentQuestion) startEdit(currentQuestion.id);
   });
   speakQBtn.addEventListener("click", ()=>{
-    if(currentQuestion) speakText(currentQuestion.question, speakQBtn, "🔊 Nghe đọc");
+    if(currentQuestion) speakText(currentQuestion.question, speakQBtn, "🔊 Nghe đọc", statusLine);
   });
 
   function setRunningState(running){
@@ -2334,7 +2359,7 @@
     if(currentFollowup) startFuEdit(currentFollowup.id);
   });
   speakFuBtn.addEventListener("click", ()=>{
-    if(currentFollowup) speakText(currentFollowup.statement, speakFuBtn, "🔊 Nghe đọc");
+    if(currentFollowup) speakText(currentFollowup.statement, speakFuBtn, "🔊 Nghe đọc", fuStatusLine);
   });
 
   function fuSetRunningState(running){
