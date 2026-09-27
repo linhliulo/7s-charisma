@@ -1175,6 +1175,7 @@
 
           <div class="stage-actions">
             <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
+            <button class="stage-edit-btn" id="speakQBtn" disabled>🔊 Nghe đọc</button>
             <button class="stage-edit-btn" id="editQBtn" disabled>✎ Sửa</button>
           </div>
 
@@ -1216,6 +1217,7 @@
 
           <div class="stage-actions">
             <button class="random-btn" id="fuRandomBtn">🎲 Random nhận định</button>
+            <button class="stage-edit-btn" id="speakFuBtn" disabled>🔊 Nghe đọc</button>
             <button class="stage-edit-btn" id="fuEditBtn" disabled>✎ Sửa</button>
           </div>
 
@@ -1437,6 +1439,7 @@
   };
 
   function activateTab(tabKey){
+    stopSpeaking();
     activeTabKey = tabKey;
     tabBtns.forEach(b=> b.classList.toggle("active", b.dataset.tab === tabKey));
     Object.entries(views).forEach(([key, el])=> el.classList.toggle("active", key === tabKey));
@@ -1908,6 +1911,7 @@
   };
   subtabBtns.forEach(btn=>{
     btn.addEventListener("click", ()=>{
+      stopSpeaking();
       subtabBtns.forEach(b=>b.classList.remove("active"));
       btn.classList.add("active");
       Object.values(practicePanes).forEach(p=>p.classList.remove("active"));
@@ -1930,6 +1934,34 @@
   const completeBtn = document.getElementById("completeBtn");
   const skipBtn = document.getElementById("skipBtn");
   const editQBtn = document.getElementById("editQBtn");
+  const speakQBtn = document.getElementById("speakQBtn");
+
+  function speakText(text, btn, idleLabel){
+    if(!("speechSynthesis" in window)){
+      alert("Trình duyệt của bạn không hỗ trợ tính năng đọc văn bản.");
+      return;
+    }
+    if(speechSynthesis.speaking){
+      speechSynthesis.cancel();
+      btn.textContent = idleLabel;
+      return;
+    }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "vi-VN";
+    utter.rate = 0.95;
+    utter.onstart = () => { btn.textContent = "⏹ Dừng đọc"; };
+    utter.onend = () => { btn.textContent = idleLabel; };
+    utter.onerror = () => { btn.textContent = idleLabel; };
+    speechSynthesis.speak(utter);
+  }
+
+  function stopSpeaking(){
+    if("speechSynthesis" in window && speechSynthesis.speaking){
+      speechSynthesis.cancel();
+    }
+    speakQBtn.textContent = "🔊 Nghe đọc";
+    speakFuBtn.textContent = "🔊 Nghe đọc";
+  }
 
   let selectedDuration = 7;
   let remaining = selectedDuration;
@@ -1967,6 +1999,7 @@
   });
 
   randomBtn.addEventListener("click", ()=>{
+    stopSpeaking();
     if(questions.length === 0){
       stageQuestion.textContent = "Chưa có câu hỏi nào — hãy thêm ở tab \"Câu hỏi\" trước.";
       stageQuestion.classList.add("placeholder");
@@ -1988,6 +2021,7 @@
     completeBtn.disabled = false;
     skipBtn.disabled = false;
     editQBtn.disabled = false;
+    speakQBtn.disabled = false;
     statusLine.textContent = "";
   });
 
@@ -2059,6 +2093,7 @@
 
   function logAttempt(result){
     if(!currentQuestion) return;
+    stopSpeaking();
     history.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
       type: "question",
@@ -2084,6 +2119,7 @@
     completeBtn.disabled = true;
     skipBtn.disabled = true;
     editQBtn.disabled = true;
+    speakQBtn.disabled = true;
     loadRevealSequence({ coreKeyword:"", coreRef:"", supports: [] });
     statusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
@@ -2092,6 +2128,9 @@
   skipBtn.addEventListener("click", ()=> logAttempt("skipped"));
   editQBtn.addEventListener("click", ()=>{
     if(currentQuestion) startEdit(currentQuestion.id);
+  });
+  speakQBtn.addEventListener("click", ()=>{
+    if(currentQuestion) speakText(currentQuestion.question, speakQBtn, "🔊 Nghe đọc");
   });
 
   function setRunningState(running){
@@ -2145,6 +2184,7 @@
   const fuCompleteBtn = document.getElementById("fuCompleteBtn");
   const fuSkipBtn = document.getElementById("fuSkipBtn");
   const fuEditBtn = document.getElementById("fuEditBtn");
+  const speakFuBtn = document.getElementById("speakFuBtn");
 
   let fuSelectedDuration = 7;
   let fuRemaining = fuSelectedDuration;
@@ -2177,6 +2217,7 @@
   });
 
   fuRandomBtn.addEventListener("click", ()=>{
+    stopSpeaking();
     if(followups.length === 0){
       fuStageStatement.textContent = "Chưa có nhận định nào — hãy thêm ở tab \"Follow-up question\" trước.";
       fuStageStatement.classList.add("placeholder");
@@ -2198,6 +2239,7 @@
     fuCompleteBtn.disabled = false;
     fuSkipBtn.disabled = false;
     fuEditBtn.disabled = false;
+    speakFuBtn.disabled = false;
     fuStatusLine.textContent = "";
   });
 
@@ -2255,6 +2297,7 @@
 
   function fuLogAttempt(result){
     if(!currentFollowup) return;
+    stopSpeaking();
     history.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
       type: "followup",
@@ -2280,6 +2323,7 @@
     fuCompleteBtn.disabled = true;
     fuSkipBtn.disabled = true;
     fuEditBtn.disabled = true;
+    speakFuBtn.disabled = true;
     fuLoadRevealSequence({ framework:"", commonQuestions:"", likelyAnswer:"", betterApproach:"" });
     fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
@@ -2288,6 +2332,9 @@
   fuSkipBtn.addEventListener("click", ()=> fuLogAttempt("skipped"));
   fuEditBtn.addEventListener("click", ()=>{
     if(currentFollowup) startFuEdit(currentFollowup.id);
+  });
+  speakFuBtn.addEventListener("click", ()=>{
+    if(currentFollowup) speakText(currentFollowup.statement, speakFuBtn, "🔊 Nghe đọc");
   });
 
   function fuSetRunningState(running){
