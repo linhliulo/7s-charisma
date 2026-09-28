@@ -1079,6 +1079,12 @@
     padding: 10px 12px;
     border-bottom: 1px solid var(--line);
   }
+  .report-table th.sortable{
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .report-table th.sortable:hover{ color: var(--ink); }
   .report-table td{
     padding: 10px 12px;
     border-bottom: 1px solid var(--line);
@@ -1286,7 +1292,7 @@
 
           <div class="finish-group">
             <button class="btn-complete" id="completeBtn" disabled>✓ Hoàn thành luyện tập</button>
-            <button class="btn-skip" id="skipBtn" disabled>Bỏ qua</button>
+            <button class="btn-skip" id="skipBtn" disabled>Luyện tập thêm</button>
           </div>
         </div>
       </div>
@@ -1326,7 +1332,7 @@
 
           <div class="finish-group">
             <button class="btn-complete" id="fuCompleteBtn" disabled>✓ Hoàn thành luyện tập</button>
-            <button class="btn-skip" id="fuSkipBtn" disabled>Bỏ qua</button>
+            <button class="btn-skip" id="fuSkipBtn" disabled>Luyện tập thêm</button>
           </div>
         </div>
       </div>
@@ -1526,6 +1532,40 @@
     const parts = s.split("-");
     if(parts.length !== 3) return s;
     return `${parts[2]}/${parts[1]}`;
+  }
+
+  /* ---------------- Thống kê hoàn thành / luyện tập thêm theo câu hỏi ---------------- */
+  function buildStatsMap(type){
+    const map = {};
+    history.forEach(h=>{
+      if((h.type || "question") !== type) return;
+      const id = h.questionId;
+      if(!id) return;
+      if(!map[id]) map[id] = { completed: 0, practiceMore: 0, last: 0 };
+      if(h.result === "completed") map[id].completed += 1;
+      else map[id].practiceMore += 1;
+      if(h.timestamp > map[id].last) map[id].last = h.timestamp;
+    });
+    return map;
+  }
+
+  // Random có trọng số: câu Hoàn thành càng ít, Luyện tập thêm càng nhiều thì xác suất được chọn càng cao.
+  function weightedPick(items, statsMap){
+    if(items.length === 1) return items[0];
+    const stats = items.map(it => statsMap[it.id] || { completed: 0, practiceMore: 0 });
+    const maxCompleted = Math.max(0, ...stats.map(s => s.completed));
+    const weights = stats.map(s => {
+      const primary = Math.pow(maxCompleted - s.completed + 1, 2); // ít hoàn thành -> trọng số cao
+      const secondary = s.practiceMore + 1; // nhiều luyện tập thêm -> trọng số cao hơn
+      return primary * secondary;
+    });
+    const totalWeight = weights.reduce((a,b)=>a+b, 0);
+    let r = Math.random() * totalWeight;
+    for(let i=0; i<items.length; i++){
+      r -= weights[i];
+      if(r <= 0) return items[i];
+    }
+    return items[items.length - 1];
   }
 
   /* ---------------- Tabs / page header ---------------- */
@@ -2088,14 +2128,11 @@
       stageQuestion.classList.add("placeholder");
       return;
     }
-    let pick;
-    if(questions.length === 1){
-      pick = questions[0];
-    } else {
-      do{
-        pick = questions[Math.floor(Math.random() * questions.length)];
-      } while(pick.id === lastQuestionId);
-    }
+    const statsMap = buildStatsMap("question");
+    const candidates = questions.length > 1
+      ? questions.filter(q => q.id !== lastQuestionId)
+      : questions;
+    const pick = weightedPick(candidates, statsMap);
     lastQuestionId = pick.id;
     currentQuestion = pick;
     stageQuestion.textContent = pick.question;
@@ -2201,7 +2238,7 @@
     skipBtn.disabled = true;
     editQBtn.disabled = true;
     loadRevealSequence({ coreKeyword:"", coreRef:"", supports: [] });
-    statusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
+    statusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Luyện tập thêm.";
   }
 
   completeBtn.addEventListener("click", ()=> logAttempt("completed"));
@@ -2298,14 +2335,11 @@
       fuStageStatement.classList.add("placeholder");
       return;
     }
-    let pick;
-    if(followups.length === 1){
-      pick = followups[0];
-    } else {
-      do{
-        pick = followups[Math.floor(Math.random() * followups.length)];
-      } while(pick.id === lastFollowupId);
-    }
+    const fuStatsMap = buildStatsMap("followup");
+    const fuCandidates = followups.length > 1
+      ? followups.filter(f => f.id !== lastFollowupId)
+      : followups;
+    const pick = weightedPick(fuCandidates, fuStatsMap);
     lastFollowupId = pick.id;
     currentFollowup = pick;
     fuStageStatement.textContent = pick.statement;
@@ -2397,7 +2431,7 @@
     fuSkipBtn.disabled = true;
     fuEditBtn.disabled = true;
     fuLoadRevealSequence({ framework:"", commonQuestions:"", likelyAnswer:"", betterApproach:"" });
-    fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
+    fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Luyện tập thêm.";
   }
 
   fuCompleteBtn.addEventListener("click", ()=> fuLogAttempt("completed"));
@@ -2489,7 +2523,7 @@
         </div>
         <div class="hist-badges">
           <span class="badge type-${h.type||'question'}">${typeLabel(h.type)}</span>
-          <span class="badge ${h.result}">${h.result === "completed" ? "Hoàn thành" : "Bỏ qua"}</span>
+          <span class="badge ${h.result}">${h.result === "completed" ? "Hoàn thành" : "Luyện tập thêm"}</span>
         </div>
       </div>
     `).join("");
@@ -2520,10 +2554,10 @@
     return (date.getDay() + 6) % 7;
   }
 
-  function getRealCompletedDateSet(){
+  function getPracticedDateSet(){
     const set = new Set();
     history.forEach(h=>{
-      if(h.result === "completed") set.add(tsToISO(h.timestamp));
+      set.add(tsToISO(h.timestamp));
     });
     return set;
   }
@@ -2533,7 +2567,7 @@
   }
 
   function getCompletedDateSet(){
-    const set = getRealCompletedDateSet();
+    const set = getPracticedDateSet();
     recoveredDates.forEach(d => set.add(d));
     return set;
   }
@@ -2586,7 +2620,7 @@
   }
 
   function renderStreak(){
-    const realSet = getRealCompletedDateSet();
+    const practicedSet = getPracticedDateSet();
     const recoveredSet = getRecoveredSet();
     const dateSet = getCompletedDateSet();
 
@@ -2623,7 +2657,7 @@
       if(d > today){
         cellsHtml += `<div class="streak-cell future" title=""></div>`;
       } else {
-        const done = realSet.has(iso);
+        const done = practicedSet.has(iso);
         const recovered = !done && recoveredSet.has(iso);
         const isToday = iso === todayIso;
         const titleSuffix = done ? " · Đã luyện tập" : (recovered ? " · Đã khôi phục" : "");
@@ -2697,8 +2731,8 @@
       return;
     }
     if(recoveredDates.includes(val)){ alert("Ngày này đã được khôi phục trước đó rồi."); return; }
-    const hasRealCompletion = history.some(h => h.result === "completed" && tsToISO(h.timestamp) === val);
-    if(hasRealCompletion){ alert("Ngày này đã có lượt luyện tập hoàn thành rồi, không cần khôi phục."); return; }
+    const hasRealPractice = history.some(h => tsToISO(h.timestamp) === val);
+    if(hasRealPractice){ alert("Ngày này đã có lượt luyện tập rồi, không cần khôi phục."); return; }
 
     recoveredDates.push(val);
     saveRecovered(recoveredDates);
@@ -2773,66 +2807,98 @@
   const reportSummaryFu = document.getElementById("reportSummaryFu");
   const reportTableWrapFu = document.getElementById("reportTableWrapFu");
 
-  function renderReportSection(entries, summaryEl, tableEl, emptyLabel, colLabel){
+  let reportSortState = {
+    question: { by: "completed", dir: "desc" },
+    followup: { by: "completed", dir: "desc" }
+  };
+
+  function compareReportRows(a, b, by, dir){
+    if(by === "last"){
+      const aZero = !a.last, bZero = !b.last;
+      if(aZero && bZero) return 0;
+      if(aZero) return 1;
+      if(bZero) return -1;
+      return dir === "desc" ? b.last - a.last : a.last - b.last;
+    }
+    const av = a[by], bv = b[by];
+    if(av === bv) return 0;
+    return dir === "desc" ? bv - av : av - bv;
+  }
+
+  function renderReportSection(libraryList, textField, type, summaryEl, tableEl, emptyLabel, colLabel){
+    const statsMap = buildStatsMap(type);
+    const rows = libraryList.map(item=>{
+      const s = statsMap[item.id] || { completed: 0, practiceMore: 0, last: 0 };
+      return { id: item.id, text: item[textField], completed: s.completed, practiceMore: s.practiceMore, last: s.last };
+    });
+
+    const totalAttempts = rows.reduce((sum,r)=> sum + r.completed + r.practiceMore, 0);
     summaryEl.innerHTML = `
       <div class="summary-card">
-        <div class="summary-num">${entries.length}</div>
+        <div class="summary-num">${totalAttempts}</div>
         <div class="summary-label">Tổng lượt luyện tập</div>
       </div>
     `;
 
-    if(entries.length === 0){
-      tableEl.innerHTML = `<div class="empty-note">Chưa có dữ liệu ${emptyLabel} để thống kê.</div>`;
+    if(rows.length === 0){
+      tableEl.innerHTML = `<div class="empty-note">Chưa có ${emptyLabel} nào trong thư viện.</div>`;
       return;
     }
 
-    const groups = {};
-    entries.forEach(h=>{
-      const key = h.question;
-      if(!groups[key]){
-        groups[key] = { question: h.question, completed: 0, last: 0 };
-      }
-      if(h.result === "completed") groups[key].completed += 1;
-      if(h.timestamp > groups[key].last) groups[key].last = h.timestamp;
-    });
-
-    const rows = Object.values(groups).sort((a,b)=>{
-      if(b.completed !== a.completed) return b.completed - a.completed;
-      return b.last - a.last;
-    });
-
+    const state = reportSortState[type];
+    const sorted = [...rows].sort((a,b)=> compareReportRows(a, b, state.by, state.dir));
     const maxCompleted = Math.max(1, ...rows.map(r=>r.completed));
+
+    function arrow(col){
+      if(state.by !== col) return "";
+      return state.dir === "desc" ? " ▼" : " ▲";
+    }
 
     tableEl.innerHTML = `
       <table class="report-table">
         <thead>
           <tr>
             <th>${colLabel}</th>
-            <th style="text-align:center;">Hoàn thành</th>
-            <th>Lần cuối</th>
+            <th class="sortable" data-type="${type}" data-sort="completed" style="text-align:center;">Hoàn thành${arrow("completed")}</th>
+            <th class="sortable" data-type="${type}" data-sort="practiceMore" style="text-align:center;">Luyện tập thêm${arrow("practiceMore")}</th>
+            <th class="sortable" data-type="${type}" data-sort="last">Lần cuối${arrow("last")}</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.map(r=>`
+          ${sorted.map(r=>`
             <tr>
               <td class="q-cell">
-                ${escapeHtml(r.question)}
+                ${escapeHtml(r.text)}
                 <div class="bar-track"><div class="bar-fill" style="width:${(r.completed/maxCompleted*100).toFixed(0)}%"></div></div>
               </td>
               <td class="num-cell">${r.completed}</td>
-              <td>${formatDateTime(r.last)}</td>
+              <td class="num-cell">${r.practiceMore}</td>
+              <td>${r.last ? formatDateTime(r.last) : "—"}</td>
             </tr>
           `).join("")}
         </tbody>
       </table>
     `;
+
+    tableEl.querySelectorAll("th.sortable").forEach(th=>{
+      th.addEventListener("click", ()=>{
+        const col = th.dataset.sort;
+        const t = th.dataset.type;
+        const st = reportSortState[t];
+        if(st.by === col){
+          st.dir = st.dir === "desc" ? "asc" : "desc";
+        } else {
+          st.by = col;
+          st.dir = "desc";
+        }
+        renderReport();
+      });
+    });
   }
 
   function renderReport(){
-    const qEntries = history.filter(h => (h.type || "question") === "question");
-    const fuEntries = history.filter(h => h.type === "followup");
-    renderReportSection(qEntries, reportSummaryQ, reportTableWrapQ, "câu hỏi", "Câu hỏi");
-    renderReportSection(fuEntries, reportSummaryFu, reportTableWrapFu, "nhận định", "Nhận định");
+    renderReportSection(questions, "question", "question", reportSummaryQ, reportTableWrapQ, "câu hỏi", "Câu hỏi");
+    renderReportSection(followups, "statement", "followup", reportSummaryFu, reportTableWrapFu, "nhận định", "Nhận định");
   }
 
   /* ---------------- Init ---------------- */
