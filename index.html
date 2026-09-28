@@ -773,6 +773,15 @@
   .streak-cell.today{
     box-shadow: 0 0 0 1.5px var(--ink-dim);
   }
+  .streak-cell.recovered{
+    background: transparent;
+    border: 2px solid var(--gold);
+  }
+  .streak-legend{
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 10px;
+  }
   .streak-stats{
     display: flex;
     gap: 12px;
@@ -798,6 +807,78 @@
     color: var(--ink-faint);
     margin-top: 2px;
   }
+
+  .recover-panel{
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .recover-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .recover-title{
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .recover-remaining{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--gold);
+  }
+  .recover-desc{
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 12px;
+  }
+  .recover-form{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .recover-form input[type="date"]{
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .recover-form input[type="date"]:focus{ border-color: var(--gold); }
+  .recovered-list{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .recovered-chip{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--gold);
+    background: var(--gold-soft);
+    border: 1px solid var(--gold-dim);
+    border-radius: var(--radius-pill);
+    padding: 3px 8px 3px 10px;
+  }
+  .recovered-chip button{
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+  }
+  .recovered-chip button:hover{ color: var(--red); }
 
   .intensity-panel{
     background: var(--bg-soft);
@@ -1175,7 +1256,6 @@
 
           <div class="stage-actions">
             <button class="random-btn" id="randomBtn">🎲 Random câu hỏi</button>
-            <button class="stage-edit-btn" id="speakQBtn" disabled>🔊 Nghe đọc</button>
             <button class="stage-edit-btn" id="editQBtn" disabled>✎ Sửa</button>
           </div>
 
@@ -1217,7 +1297,6 @@
 
           <div class="stage-actions">
             <button class="random-btn" id="fuRandomBtn">🎲 Random nhận định</button>
-            <button class="stage-edit-btn" id="speakFuBtn" disabled>🔊 Nghe đọc</button>
             <button class="stage-edit-btn" id="fuEditBtn" disabled>✎ Sửa</button>
           </div>
 
@@ -1264,6 +1343,7 @@
             <div class="streak-grid" id="streakGrid"></div>
           </div>
         </div>
+        <div class="streak-legend">🟧 = đã luyện tập &nbsp;·&nbsp; ◻ viền vàng = đã dùng lượt khôi phục</div>
         <div class="streak-stats">
           <div class="streak-stat-card">
             <div class="streak-stat-num" id="currentStreakNum">0</div>
@@ -1273,6 +1353,19 @@
             <div class="streak-stat-num" id="longestStreakNum">0</div>
             <div class="streak-stat-label" id="longestStreakRange">Streak dài nhất</div>
           </div>
+        </div>
+
+        <div class="recover-panel">
+          <div class="recover-header">
+            <div class="recover-title">🩹 Khôi phục streak (back-date)</div>
+            <div class="recover-remaining" id="recoverRange">Áp dụng cho 10 ngày gần nhất</div>
+          </div>
+          <div class="recover-desc">Lỡ quên luyện một ngày? Chọn ngày đó (trong vòng 10 ngày gần nhất) và tính là đã hoàn thành, giữ streak không bị đứt.</div>
+          <div class="recover-form">
+            <input type="date" id="recoverDateInput" />
+            <button type="button" class="add-support-btn" id="recoverBtn">+ Khôi phục ngày này</button>
+          </div>
+          <div class="recovered-list" id="recoveredList"></div>
         </div>
       </div>
 
@@ -1393,6 +1486,27 @@
   }
   let history = loadHistory();
 
+  /* ---------------- Data layer: streak recovery ---------------- */
+  const RECOVER_KEY = "speech-practice-recovered-v1";
+  const RECOVER_WINDOW_DAYS = 10;
+  function loadRecovered(){
+    try{
+      const raw = localStorage.getItem(RECOVER_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){
+      console.error("Không đọc được dữ liệu khôi phục streak:", e);
+      return [];
+    }
+  }
+  function saveRecovered(list){
+    try{
+      localStorage.setItem(RECOVER_KEY, JSON.stringify(list));
+    }catch(e){
+      console.error("Không lưu được dữ liệu khôi phục streak:", e);
+    }
+  }
+  let recoveredDates = loadRecovered();
+
   /* ---------------- Helpers ---------------- */
   function escapeHtml(str){
     return (str||"").replace(/[&<>"']/g, c => ({
@@ -1439,7 +1553,6 @@
   };
 
   function activateTab(tabKey){
-    stopSpeaking();
     activeTabKey = tabKey;
     tabBtns.forEach(b=> b.classList.toggle("active", b.dataset.tab === tabKey));
     Object.entries(views).forEach(([key, el])=> el.classList.toggle("active", key === tabKey));
@@ -1449,7 +1562,7 @@
     headerActionBtn.style.display = h.action ? "inline-block" : "none";
     headerActionBtn.textContent = h.actionLabel || "";
     if(tabKey === "followup") renderFollowupList();
-    if(tabKey === "history"){ renderHistory(); renderStreak(); renderIntensity(); }
+    if(tabKey === "history"){ renderHistory(); renderStreak(); renderRecoverPanel(); renderIntensity(); }
     if(tabKey === "report") renderReport();
   }
 
@@ -1911,7 +2024,6 @@
   };
   subtabBtns.forEach(btn=>{
     btn.addEventListener("click", ()=>{
-      stopSpeaking();
       subtabBtns.forEach(b=>b.classList.remove("active"));
       btn.classList.add("active");
       Object.values(practicePanes).forEach(p=>p.classList.remove("active"));
@@ -1934,59 +2046,6 @@
   const completeBtn = document.getElementById("completeBtn");
   const skipBtn = document.getElementById("skipBtn");
   const editQBtn = document.getElementById("editQBtn");
-  const speakQBtn = document.getElementById("speakQBtn");
-
-  let cachedVoices = [];
-  function loadVoices(){
-    if("speechSynthesis" in window){
-      cachedVoices = window.speechSynthesis.getVoices();
-    }
-  }
-  loadVoices();
-  if("speechSynthesis" in window){
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-  }
-
-  function getVietnameseVoice(){
-    if(!cachedVoices.length) loadVoices();
-    return cachedVoices.find(v => v.lang === "vi-VN")
-      || cachedVoices.find(v => v.lang && v.lang.toLowerCase().startsWith("vi"))
-      || null;
-  }
-
-  function speakText(text, btn, idleLabel, statusEl){
-    if(!("speechSynthesis" in window)){
-      alert("Trình duyệt của bạn không hỗ trợ tính năng đọc văn bản.");
-      return;
-    }
-    if(speechSynthesis.speaking){
-      speechSynthesis.cancel();
-      btn.textContent = idleLabel;
-      return;
-    }
-    const utter = new SpeechSynthesisUtterance(text);
-    const viVoice = getVietnameseVoice();
-    if(viVoice){
-      utter.voice = viVoice;
-      utter.lang = viVoice.lang;
-    } else {
-      utter.lang = "vi-VN";
-      if(statusEl) statusEl.textContent = "Máy này chưa có giọng đọc tiếng Việt nên có thể sẽ đọc bằng giọng khác — xem cách cài thêm giọng ở cuối trang.";
-    }
-    utter.rate = 0.95;
-    utter.onstart = () => { btn.textContent = "⏹ Dừng đọc"; };
-    utter.onend = () => { btn.textContent = idleLabel; };
-    utter.onerror = () => { btn.textContent = idleLabel; };
-    speechSynthesis.speak(utter);
-  }
-
-  function stopSpeaking(){
-    if("speechSynthesis" in window && speechSynthesis.speaking){
-      speechSynthesis.cancel();
-    }
-    speakQBtn.textContent = "🔊 Nghe đọc";
-    speakFuBtn.textContent = "🔊 Nghe đọc";
-  }
 
   let selectedDuration = 7;
   let remaining = selectedDuration;
@@ -2024,7 +2083,6 @@
   });
 
   randomBtn.addEventListener("click", ()=>{
-    stopSpeaking();
     if(questions.length === 0){
       stageQuestion.textContent = "Chưa có câu hỏi nào — hãy thêm ở tab \"Câu hỏi\" trước.";
       stageQuestion.classList.add("placeholder");
@@ -2046,7 +2104,6 @@
     completeBtn.disabled = false;
     skipBtn.disabled = false;
     editQBtn.disabled = false;
-    speakQBtn.disabled = false;
     statusLine.textContent = "";
   });
 
@@ -2118,7 +2175,6 @@
 
   function logAttempt(result){
     if(!currentQuestion) return;
-    stopSpeaking();
     history.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
       type: "question",
@@ -2144,7 +2200,6 @@
     completeBtn.disabled = true;
     skipBtn.disabled = true;
     editQBtn.disabled = true;
-    speakQBtn.disabled = true;
     loadRevealSequence({ coreKeyword:"", coreRef:"", supports: [] });
     statusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
@@ -2153,9 +2208,6 @@
   skipBtn.addEventListener("click", ()=> logAttempt("skipped"));
   editQBtn.addEventListener("click", ()=>{
     if(currentQuestion) startEdit(currentQuestion.id);
-  });
-  speakQBtn.addEventListener("click", ()=>{
-    if(currentQuestion) speakText(currentQuestion.question, speakQBtn, "🔊 Nghe đọc", statusLine);
   });
 
   function setRunningState(running){
@@ -2209,7 +2261,6 @@
   const fuCompleteBtn = document.getElementById("fuCompleteBtn");
   const fuSkipBtn = document.getElementById("fuSkipBtn");
   const fuEditBtn = document.getElementById("fuEditBtn");
-  const speakFuBtn = document.getElementById("speakFuBtn");
 
   let fuSelectedDuration = 7;
   let fuRemaining = fuSelectedDuration;
@@ -2242,7 +2293,6 @@
   });
 
   fuRandomBtn.addEventListener("click", ()=>{
-    stopSpeaking();
     if(followups.length === 0){
       fuStageStatement.textContent = "Chưa có nhận định nào — hãy thêm ở tab \"Follow-up question\" trước.";
       fuStageStatement.classList.add("placeholder");
@@ -2264,7 +2314,6 @@
     fuCompleteBtn.disabled = false;
     fuSkipBtn.disabled = false;
     fuEditBtn.disabled = false;
-    speakFuBtn.disabled = false;
     fuStatusLine.textContent = "";
   });
 
@@ -2322,7 +2371,6 @@
 
   function fuLogAttempt(result){
     if(!currentFollowup) return;
-    stopSpeaking();
     history.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
       type: "followup",
@@ -2348,7 +2396,6 @@
     fuCompleteBtn.disabled = true;
     fuSkipBtn.disabled = true;
     fuEditBtn.disabled = true;
-    speakFuBtn.disabled = true;
     fuLoadRevealSequence({ framework:"", commonQuestions:"", likelyAnswer:"", betterApproach:"" });
     fuStatusLine.textContent = result === "completed" ? "Đã ghi nhận: Hoàn thành." : "Đã ghi nhận: Bỏ qua.";
   }
@@ -2357,9 +2404,6 @@
   fuSkipBtn.addEventListener("click", ()=> fuLogAttempt("skipped"));
   fuEditBtn.addEventListener("click", ()=>{
     if(currentFollowup) startFuEdit(currentFollowup.id);
-  });
-  speakFuBtn.addEventListener("click", ()=>{
-    if(currentFollowup) speakText(currentFollowup.statement, speakFuBtn, "🔊 Nghe đọc", fuStatusLine);
   });
 
   function fuSetRunningState(running){
@@ -2476,11 +2520,21 @@
     return (date.getDay() + 6) % 7;
   }
 
-  function getCompletedDateSet(){
+  function getRealCompletedDateSet(){
     const set = new Set();
     history.forEach(h=>{
       if(h.result === "completed") set.add(tsToISO(h.timestamp));
     });
+    return set;
+  }
+
+  function getRecoveredSet(){
+    return new Set(recoveredDates);
+  }
+
+  function getCompletedDateSet(){
+    const set = getRealCompletedDateSet();
+    recoveredDates.forEach(d => set.add(d));
     return set;
   }
 
@@ -2532,6 +2586,8 @@
   }
 
   function renderStreak(){
+    const realSet = getRealCompletedDateSet();
+    const recoveredSet = getRecoveredSet();
     const dateSet = getCompletedDateSet();
 
     streakDayLabels.innerHTML = ["T2","","T4","","T6","",""].map(l=>`<span>${l}</span>`).join("");
@@ -2567,9 +2623,11 @@
       if(d > today){
         cellsHtml += `<div class="streak-cell future" title=""></div>`;
       } else {
-        const done = dateSet.has(iso);
+        const done = realSet.has(iso);
+        const recovered = !done && recoveredSet.has(iso);
         const isToday = iso === todayIso;
-        cellsHtml += `<div class="streak-cell${done ? " done" : ""}${isToday ? " today" : ""}" title="${iso}${done ? " · Đã luyện tập" : ""}"></div>`;
+        const titleSuffix = done ? " · Đã luyện tập" : (recovered ? " · Đã khôi phục" : "");
+        cellsHtml += `<div class="streak-cell${done ? " done" : ""}${recovered ? " recovered" : ""}${isToday ? " today" : ""}" title="${iso}${titleSuffix}"></div>`;
       }
     }
     streakGrid.innerHTML = cellsHtml;
@@ -2584,6 +2642,70 @@
       ? `Streak dài nhất · ${formatIsoShort(best.start)} – ${formatIsoShort(best.end)}`
       : "Streak dài nhất";
   }
+
+  /* ---------------- Streak recovery panel ---------------- */
+  const recoverDateInput = document.getElementById("recoverDateInput");
+  const recoverBtn = document.getElementById("recoverBtn");
+  const recoverRange = document.getElementById("recoverRange");
+  const recoveredList = document.getElementById("recoveredList");
+
+  function getRecoverWindow(){
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const minDate = new Date(today);
+    minDate.setDate(minDate.getDate() - RECOVER_WINDOW_DAYS);
+    return { minIso: tsToISO(minDate.getTime()), maxIso: tsToISO(yesterday.getTime()) };
+  }
+
+  function renderRecoverPanel(){
+    const { minIso, maxIso } = getRecoverWindow();
+    recoverDateInput.min = minIso;
+    recoverDateInput.max = maxIso;
+    recoverRange.textContent = `Áp dụng cho ${formatIsoShort(minIso)} – ${formatIsoShort(maxIso)}`;
+
+    if(recoveredDates.length === 0){
+      recoveredList.innerHTML = "";
+      return;
+    }
+    const sorted = [...recoveredDates].sort((a,b)=> b.localeCompare(a));
+    recoveredList.innerHTML = sorted.map(d=>`
+      <span class="recovered-chip">
+        ${formatIsoShort(d)}
+        <button type="button" class="remove-recover-btn" data-date="${d}" title="Hủy khôi phục ngày này">×</button>
+      </span>
+    `).join("");
+
+    recoveredList.querySelectorAll(".remove-recover-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const d = btn.dataset.date;
+        recoveredDates = recoveredDates.filter(x => x !== d);
+        saveRecovered(recoveredDates);
+        renderRecoverPanel();
+        renderStreak();
+      });
+    });
+  }
+
+  recoverBtn.addEventListener("click", ()=>{
+    const val = recoverDateInput.value;
+    if(!val){ alert("Vui lòng chọn một ngày."); return; }
+    const { minIso, maxIso } = getRecoverWindow();
+    if(val < minIso || val > maxIso){
+      alert(`Chỉ có thể khôi phục cho ngày trong khoảng ${formatIsoShort(minIso)} – ${formatIsoShort(maxIso)} (10 ngày gần nhất).`);
+      return;
+    }
+    if(recoveredDates.includes(val)){ alert("Ngày này đã được khôi phục trước đó rồi."); return; }
+    const hasRealCompletion = history.some(h => h.result === "completed" && tsToISO(h.timestamp) === val);
+    if(hasRealCompletion){ alert("Ngày này đã có lượt luyện tập hoàn thành rồi, không cần khôi phục."); return; }
+
+    recoveredDates.push(val);
+    saveRecovered(recoveredDates);
+    recoverDateInput.value = "";
+    renderRecoverPanel();
+    renderStreak();
+  });
 
   /* ---------------- Intensity heatmap ---------------- */
   const intensityBars = document.getElementById("intensityBars");
@@ -2722,6 +2844,7 @@
   renderFollowupList();
   renderReveal();
   fuRenderReveal();
+  renderRecoverPanel();
 
 })();
 </script>
