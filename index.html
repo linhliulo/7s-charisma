@@ -1521,6 +1521,11 @@
   }
   function escapeAttr(str){ return escapeHtml(str); }
 
+  // Chuyển **text** thành in đậm, sau khi đã escape HTML để tránh chèn mã độc.
+  function formatBold(str){
+    return escapeHtml(str).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+
   function todayISO(){
     const d = new Date();
     const pad = n => String(n).padStart(2, "0");
@@ -1693,7 +1698,7 @@
     saveQuestions(questions);
     if(currentQuestion && currentQuestion.id === record.id){
       currentQuestion = record;
-      stageQuestion.textContent = record.question;
+      stageQuestion.innerHTML = formatBold(record.question);
       loadRevealSequence(record);
     }
     resetForm();
@@ -1786,7 +1791,7 @@
         <div class="block">
           <div class="block-label">Giải thích ${i+1}</div>
           ${s.keyword ? `<span class="chip">${escapeHtml(s.keyword)}</span>` : ""}
-          ${s.ref ? `<div class="ref-text">${escapeHtml(s.ref)}</div>` : ""}
+          ${s.ref ? `<div class="ref-text">${formatBold(s.ref)}</div>` : ""}
         </div>
       `).join("");
 
@@ -1795,7 +1800,7 @@
       card.innerHTML = `
         <div class="qcard-head">
           <div class="qcard-date">${formatDateStr(q.uploadDate)}</div>
-          <div class="qcard-q">${escapeHtml(q.question)}</div>
+          <div class="qcard-q">${formatBold(q.question)}</div>
           <div class="qcard-tags">${tagsHtml}</div>
           <div class="qcard-actions">
             <button class="icon-btn edit-btn" title="Sửa">Sửa</button>
@@ -1806,7 +1811,7 @@
           <div class="block">
             <div class="block-label">Thông điệp cốt lõi</div>
             ${q.coreKeyword ? `<span class="chip">${escapeHtml(q.coreKeyword)}</span>` : ""}
-            ${q.coreRef ? `<div class="ref-text">${escapeHtml(q.coreRef)}</div>` : ""}
+            ${q.coreRef ? `<div class="ref-text">${formatBold(q.coreRef)}</div>` : ""}
           </div>
           ${supportsHtml}
         </div>
@@ -1898,7 +1903,7 @@
     saveFollowups(followups);
     if(currentFollowup && currentFollowup.id === record.id){
       currentFollowup = record;
-      fuStageStatement.textContent = record.statement;
+      fuStageStatement.innerHTML = formatBold(record.statement);
       fuLoadRevealSequence(record);
     }
     resetFollowupForm();
@@ -1997,14 +2002,14 @@
       ].filter(([,val])=>val).map(([label,val])=>`
         <div class="block">
           <div class="block-label">${escapeHtml(label)}</div>
-          <div class="ref-text">${escapeHtml(val)}</div>
+          <div class="ref-text">${formatBold(val)}</div>
         </div>
       `).join("");
 
       card.innerHTML = `
         <div class="qcard-head">
           <div class="qcard-date">${formatDateStr(f.createdDate)}</div>
-          <div class="qcard-q">${escapeHtml(f.statement)}</div>
+          <div class="qcard-q">${formatBold(f.statement)}</div>
           <div class="qcard-tags">${tagsHtml}</div>
           <div class="qcard-actions">
             <button class="icon-btn edit-btn" title="Sửa">Sửa</button>
@@ -2135,7 +2140,7 @@
     const pick = weightedPick(candidates, statsMap);
     lastQuestionId = pick.id;
     currentQuestion = pick;
-    stageQuestion.textContent = pick.question;
+    stageQuestion.innerHTML = formatBold(pick.question);
     stageQuestion.classList.remove("placeholder");
     loadRevealSequence(pick);
     completeBtn.disabled = false;
@@ -2192,7 +2197,7 @@
       div.innerHTML = `
         <div class="block-label">${escapeHtml(item.label)}</div>
         ${item.keyword ? `<span class="chip">${escapeHtml(item.keyword)}</span>` : ""}
-        ${samplesVisible && item.ref ? `<div class="ref-text">${escapeHtml(item.ref)}</div>` : ""}
+        ${samplesVisible && item.ref ? `<div class="ref-text">${formatBold(item.ref)}</div>` : ""}
       `;
       revealArea.appendChild(div);
     }
@@ -2342,7 +2347,7 @@
     const pick = weightedPick(fuCandidates, fuStatsMap);
     lastFollowupId = pick.id;
     currentFollowup = pick;
-    fuStageStatement.textContent = pick.statement;
+    fuStageStatement.innerHTML = formatBold(pick.statement);
     fuStageStatement.classList.remove("placeholder");
     fuLoadRevealSequence(pick);
     fuCompleteBtn.disabled = false;
@@ -2391,7 +2396,7 @@
       div.className = "reveal-item";
       div.innerHTML = `
         <div class="block-label">${escapeHtml(item.label)}</div>
-        <div class="ref-text">${escapeHtml(item.content)}</div>
+        <div class="ref-text">${formatBold(item.content)}</div>
       `;
       fuRevealArea.appendChild(div);
     }
@@ -2518,7 +2523,7 @@
     historyList.innerHTML = sorted.map(h=>`
       <div class="hist-item">
         <div class="hist-main">
-          <div class="hist-question">${escapeHtml(h.question)}</div>
+          <div class="hist-question">${formatBold(h.question)}</div>
           <div class="hist-meta">${formatDateTime(h.timestamp)} · ${h.duration}s</div>
         </div>
         <div class="hist-badges">
@@ -2868,7 +2873,7 @@
           ${sorted.map(r=>`
             <tr>
               <td class="q-cell">
-                ${escapeHtml(r.text)}
+                ${formatBold(r.text)}
                 <div class="bar-track"><div class="bar-fill" style="width:${(r.completed/maxCompleted*100).toFixed(0)}%"></div></div>
               </td>
               <td class="num-cell">${r.completed}</td>
