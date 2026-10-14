@@ -407,6 +407,23 @@
   }
   .sort-btn:hover{ border-color: var(--ink-faint); color: var(--ink); }
 
+  .sel-bar{
+    display:none; align-items:center; gap:10px; flex-wrap:wrap;
+    background: var(--gold-soft); border:1px solid var(--line-strong);
+    border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 10px; font-size: 13px;
+  }
+  .sel-bar.on{ display:flex; }
+  .sel-bar .sel-count{ color: var(--ink); font-weight:600; }
+  .sel-bar button{
+    font-family: inherit; font-size: 13px; background:#fff; border:1px solid var(--line-strong);
+    color: var(--ink-dim); border-radius: var(--radius-pill); padding: 6px 14px; cursor:pointer;
+  }
+  .sel-bar button:hover{ color: var(--ink); border-color: var(--ink-faint); }
+  .sel-bar button.danger{ color:#b0452f; border-color:#d9a79b; }
+  .sel-bar button.danger:disabled{ opacity:.4; cursor:not-allowed; }
+  .qcard.selected{ border-color: var(--gold); background: var(--gold-soft); }
+  .qcard-check{ width:17px; height:17px; flex-shrink:0; accent-color: var(--gold); cursor:pointer; }
+
   .qcard{
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
@@ -1228,8 +1245,16 @@
             <input type="text" id="tagSearchInput" placeholder="Tìm theo tag..." autocomplete="off" />
             <div class="tag-dropdown" id="tagDropdown"></div>
           </div>
+          <button type="button" class="sort-btn" id="selectModeBtn">Chọn nhiều</button>
           <button type="button" class="sort-btn" id="sortBtn">Ngày upload: Mới nhất ↓</button>
         </div>
+      </div>
+      <div class="sel-bar" id="selBar">
+        <span class="sel-count" id="selCount">Đã chọn 0</span>
+        <button type="button" id="selAllBtn">Chọn tất cả đang hiển thị</button>
+        <button type="button" id="selNoneBtn">Bỏ chọn</button>
+        <button type="button" class="danger" id="selDeleteBtn" disabled>Xóa đã chọn</button>
+        <button type="button" id="selExitBtn">Thoát</button>
       </div>
       <div id="qList"></div>
 
@@ -1804,8 +1829,48 @@
     if(!tagSearchWrap.contains(e.target)) hideTagDropdown();
   });
 
+  /* ----- multi-select delete ----- */
+  const selectModeBtn = document.getElementById("selectModeBtn");
+  const selBar = document.getElementById("selBar");
+  const selCount = document.getElementById("selCount");
+  const selAllBtn = document.getElementById("selAllBtn");
+  const selNoneBtn = document.getElementById("selNoneBtn");
+  const selDeleteBtn = document.getElementById("selDeleteBtn");
+  const selExitBtn = document.getElementById("selExitBtn");
+  let selectMode = false;
+  let selectedIds = new Set();
+  let visibleIds = [];
+
+  function updateSelUI(){
+    selBar.classList.toggle("on", selectMode);
+    selectModeBtn.textContent = selectMode ? "Đang chọn…" : "Chọn nhiều";
+    selCount.textContent = "Đã chọn " + selectedIds.size;
+    selDeleteBtn.disabled = selectedIds.size === 0;
+    selDeleteBtn.textContent = selectedIds.size ? "Xóa đã chọn (" + selectedIds.size + ")" : "Xóa đã chọn";
+  }
+  function setSelectMode(on){
+    selectMode = on;
+    if(!on) selectedIds.clear();
+    renderList();
+  }
+  selectModeBtn.addEventListener("click", ()=> setSelectMode(!selectMode));
+  selExitBtn.addEventListener("click", ()=> setSelectMode(false));
+  selAllBtn.addEventListener("click", ()=>{ visibleIds.forEach(id=>selectedIds.add(id)); renderList(); });
+  selNoneBtn.addEventListener("click", ()=>{ selectedIds.clear(); renderList(); });
+  selDeleteBtn.addEventListener("click", ()=>{
+    const n = selectedIds.size;
+    if(!n) return;
+    if(!confirm("Xóa " + n + " câu hỏi đã chọn? Không thể hoàn tác.")) return;
+    questions = questions.filter(x=>!selectedIds.has(x.id));
+    selectedIds.clear();
+    saveQuestions(questions);
+    renderList();
+  });
+
   function renderList(){
     qCount.textContent = questions.length;
+    const existing = new Set(questions.map(q=>q.id));
+    selectedIds.forEach(id=>{ if(!existing.has(id)) selectedIds.delete(id); });
 
     let filtered = questions;
     if(tagFilter){
@@ -1819,6 +1884,8 @@
     });
 
     qList.innerHTML = "";
+    visibleIds = filtered.map(q=>q.id);
+    updateSelUI();
 
     if(questions.length === 0){
       qList.innerHTML = `<div class="empty-note">Chưa có câu hỏi nào. Thêm câu hỏi đầu tiên ở form phía trên.</div>`;
@@ -1845,6 +1912,7 @@
 
       card.innerHTML = `
         <div class="qcard-head">
+          ${selectMode ? `<input type="checkbox" class="qcard-check" ${selectedIds.has(q.id) ? "checked" : ""} />` : ""}
           <div class="qcard-date">${formatDateStr(q.uploadDate)}</div>
           <div class="qcard-q">${formatBold(q.question)}</div>
           <div class="qcard-tags">${tagsHtml}</div>
@@ -1863,7 +1931,17 @@
         </div>
       `;
 
+      if(selectedIds.has(q.id)) card.classList.add("selected");
+      const chk = card.querySelector(".qcard-check");
+      if(chk){
+        chk.addEventListener("change", ()=>{
+          if(chk.checked) selectedIds.add(q.id); else selectedIds.delete(q.id);
+          card.classList.toggle("selected", chk.checked);
+          updateSelUI();
+        });
+      }
       card.querySelector(".qcard-q").addEventListener("click", ()=>{
+        if(selectMode && chk){ chk.checked = !chk.checked; chk.dispatchEvent(new Event("change")); return; }
         card.querySelector(".qcard-body").classList.toggle("open");
       });
       card.querySelector(".edit-btn").addEventListener("click", (e)=>{
@@ -2994,6 +3072,19 @@
     // Parse TSV (or CSV) with quoted cells possibly containing newlines/delimiters
     function parseTable(text){
       text = text.replace(/\r\n?/g,"\n");
+      const trimmedFirst = (text.trimStart().split("\n")[0] || "").trim();
+      if(trimmedFirst.startsWith("|") && trimmedFirst.indexOf("|", 1) > 0){
+        // Markdown pipe table
+        const mdRows = [];
+        text.split("\n").forEach(line=>{
+          line = line.trim();
+          if(!line.startsWith("|")) return;
+          if(/^\|[\s:\-|]+\|?$/.test(line)) return; // separator row
+          line = line.replace(/^\|/, "").replace(/\|$/, "");
+          mdRows.push(line.split("|").map(c => c.replace(/<br\s*\/?>/gi, "\n").trim()));
+        });
+        return mdRows.filter(r => r.some(c => c !== ""));
+      }
       const firstLine = text.split("\n")[0] || "";
       let delim = "\t";
       if(firstLine.indexOf("\t") === -1){
@@ -3026,7 +3117,7 @@
       const n = norm(h);
       if(!n) return "skip";
       const isSup = /support|(^| )y \d|(^| )y (chinh|phu)|ho tro|phu tro|(^| )\d+$/.test(n);
-      const isRef = /goi y|tham khao|sample|mau|ref|noi dung|dien giai/.test(n);
+      const isRef = /tra loi|goi y|tham khao|sample|mau|ref|noi dung|dien giai/.test(n);
       const isKw = /tu khoa|keyword|key word|keywords/.test(n);
       if(/^(stt|no|id|#)$/.test(n)) return "skip";
       if(/cau hoi|question|^q$|de bai/.test(n) && !isSup) return "question";
