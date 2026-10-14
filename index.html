@@ -209,6 +209,27 @@
 
   .panel + .panel{ margin-top: 18px; }
 
+  /* ---------- Bulk import ---------- */
+  .bulk-panel{ margin-bottom: 18px; }
+  .bulk-panel summary{ cursor:pointer; font-weight:600; color: var(--ink); list-style:none; }
+  .bulk-panel summary::-webkit-details-marker{ display:none; }
+  .bulk-panel summary::before{ content:"▸ "; color: var(--gold, #a97d3f); }
+  .bulk-panel[open] summary::before{ content:"▾ "; }
+  .bulk-body{ margin-top: 14px; }
+  .bulk-hint{ font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 10px; }
+  .bulk-hint code{ background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 4px; }
+  #bulkText{ width:100%; min-height: 130px; font-family: "JetBrains Mono", monospace; font-size: 12px; white-space: pre; }
+  .bulk-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top: 10px; }
+  .bulk-file{ font-size: 12px; color: var(--ink-dim); }
+  .bulk-map{ overflow-x:auto; margin-top: 14px; border:1px solid var(--line); border-radius: 8px; }
+  .bulk-map table{ border-collapse: collapse; width:100%; font-size: 12.5px; }
+  .bulk-map th, .bulk-map td{ border-bottom:1px solid var(--line); padding: 6px 8px; text-align:left; vertical-align: top; max-width: 240px; }
+  .bulk-map th{ background: rgba(0,0,0,.03); }
+  .bulk-map td.cell{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bulk-map select{ width:100%; font-size: 12px; padding: 4px; }
+  .bulk-summary{ margin-top: 10px; font-size: 13px; color: var(--ink); }
+  .bulk-summary .warn{ color:#b0452f; }
+
   .field{ margin-bottom: 16px; }
   .field:last-child{ margin-bottom: 0; }
   .field label{
@@ -1138,6 +1159,31 @@
 
     <!-- ================= QUESTIONS TAB ================= -->
     <div class="view active" id="view-questions">
+
+      <details class="panel bulk-panel" id="bulkPanel">
+        <summary>Nhập hàng loạt từ bảng (Excel / Google Sheets)</summary>
+        <div class="bulk-body">
+          <div class="bulk-hint">
+            Bôi đen bảng trong Excel/Google Sheets (có thể gồm dòng tiêu đề), <code>Ctrl+C</code>, rồi dán vào ô dưới (<code>Ctrl+V</code>).
+            Tiêu đề cột được nhận diện tự động (Câu hỏi, Từ khóa, Gợi ý, Tag, Ngày...), bạn có thể chỉnh lại vai trò từng cột trước khi nhập.
+            Với ý support: cột "Từ khóa support" và "Gợi ý support" có thể lặp lại nhiều lần (ý 1, ý 2, ...).
+            Cũng dán được file <code>.csv</code>/<code>.tsv</code> qua nút chọn file.
+          </div>
+          <textarea id="bulkText" placeholder="Dán bảng vào đây..."></textarea>
+          <div class="bulk-actions">
+            <button type="button" class="btn-primary" id="bulkParseBtn">Phân tích bảng</button>
+            <input type="file" id="bulkFile" class="bulk-file" accept=".csv,.tsv,.txt" />
+            <label class="bulk-file"><input type="checkbox" id="bulkHasHeader" checked /> Dòng đầu là tiêu đề</label>
+            <label class="bulk-file"><input type="checkbox" id="bulkSkipDup" checked /> Bỏ qua câu hỏi đã có</label>
+          </div>
+          <div id="bulkMapWrap"></div>
+          <div class="bulk-summary" id="bulkSummary"></div>
+          <div class="bulk-actions" id="bulkImportRow" style="display:none;">
+            <button type="button" class="btn-primary" id="bulkImportBtn">Nhập vào danh sách</button>
+            <button type="button" class="btn-ghost" id="bulkClearBtn">Xóa bảng</button>
+          </div>
+        </div>
+      </details>
 
       <div class="panel">
         <form id="qForm">
@@ -2916,6 +2962,264 @@
   renderReveal();
   fuRenderReveal();
   renderRecoverPanel();
+
+
+  /* ---------------- Bulk import (questions) ---------------- */
+  (function bulkImport(){
+    const $ = id => document.getElementById(id);
+    const txt = $("bulkText"), parseBtn = $("bulkParseBtn"), fileIn = $("bulkFile");
+    const hasHeaderCb = $("bulkHasHeader"), skipDupCb = $("bulkSkipDup");
+    const mapWrap = $("bulkMapWrap"), summaryEl = $("bulkSummary");
+    const importRow = $("bulkImportRow"), importBtn = $("bulkImportBtn"), clearBtn = $("bulkClearBtn");
+
+    const ROLES = [
+      {v:"skip", t:"— Bỏ qua —"},
+      {v:"question", t:"Câu hỏi"},
+      {v:"coreKeyword", t:"Từ khóa cốt lõi"},
+      {v:"coreRef", t:"Gợi ý cốt lõi"},
+      {v:"supKeyword", t:"Từ khóa support"},
+      {v:"supRef", t:"Gợi ý support"},
+      {v:"tags", t:"Tag"},
+      {v:"date", t:"Ngày upload"}
+    ];
+
+    let rows = [];     // parsed table
+    let roles = [];    // role per column
+
+    function norm(x){
+      return String(x||"").normalize("NFD").replace(/[̀-ͯ]/g,"")
+        .replace(/đ/g,"d").replace(/Đ/g,"D").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+    }
+
+    // Parse TSV (or CSV) with quoted cells possibly containing newlines/delimiters
+    function parseTable(text){
+      text = text.replace(/\r\n?/g,"\n");
+      const firstLine = text.split("\n")[0] || "";
+      let delim = "\t";
+      if(firstLine.indexOf("\t") === -1){
+        const sc = (firstLine.match(/;/g)||[]).length, cc = (firstLine.match(/,/g)||[]).length;
+        delim = sc > cc ? ";" : (cc > 0 ? "," : "\t");
+      }
+      const out = [];
+      let row = [], cell = "", inQ = false, i = 0, cellStart = true;
+      while(i < text.length){
+        const ch = text[i];
+        if(inQ){
+          if(ch === '"'){
+            if(text[i+1] === '"'){ cell += '"'; i += 2; continue; }
+            inQ = false; i++; continue;
+          }
+          cell += ch; i++; continue;
+        }
+        if(ch === '"' && cellStart){ inQ = true; cellStart = false; i++; continue; }
+        if(ch === delim){ row.push(cell); cell = ""; cellStart = true; i++; continue; }
+        if(ch === "\n"){ row.push(cell); out.push(row); row = []; cell = ""; cellStart = true; i++; continue; }
+        cell += ch; cellStart = false; i++;
+      }
+      if(cell !== "" || row.length){ row.push(cell); out.push(row); }
+      return out
+        .map(r => r.map(c => c.trim()))
+        .filter(r => r.some(c => c !== ""));
+    }
+
+    function guessRole(h){
+      const n = norm(h);
+      if(!n) return "skip";
+      const isSup = /support|(^| )y \d|(^| )y (chinh|phu)|ho tro|phu tro|(^| )\d+$/.test(n);
+      const isRef = /goi y|tham khao|sample|mau|ref|noi dung|dien giai/.test(n);
+      const isKw = /tu khoa|keyword|key word|keywords/.test(n);
+      if(/^(stt|no|id|#)$/.test(n)) return "skip";
+      if(/cau hoi|question|^q$|de bai/.test(n) && !isSup) return "question";
+      if(/tag|nhan|chu de|topic|nhom/.test(n)) return "tags";
+      if(/ngay|date|upload/.test(n)) return "date";
+      if(isSup || /cot loi|core|thong diep|answer/.test(n)){
+        const core = !isSup;
+        if(isKw) return core ? "coreKeyword" : "supKeyword";
+        if(isRef) return core ? "coreRef" : "supRef";
+        return core ? "coreKeyword" : "supKeyword";
+      }
+      if(isKw) return "coreKeyword";
+      if(isRef) return "coreRef";
+      return "skip";
+    }
+
+    function guessRolesNoHeader(ncols){
+      const arr = [];
+      for(let c=0;c<ncols;c++){
+        if(c===0) arr.push("question");
+        else if(c===1) arr.push("coreKeyword");
+        else if(c===2) arr.push("coreRef");
+        else arr.push(((c-3)%2===0) ? "supKeyword" : "supRef");
+      }
+      return arr;
+    }
+
+    function parseDate(v){
+      v = String(v||"").trim();
+      if(!v) return "";
+      let m = v.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+      let y,mo,d;
+      if(m){ y=+m[1]; mo=+m[2]; d=+m[3]; }
+      else{
+        m = v.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+        if(!m) return "";
+        d=+m[1]; mo=+m[2]; y=+m[3];
+      }
+      if(mo<1||mo>12||d<1||d>31) return "";
+      return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+    }
+
+    function buildItems(){
+      const hasHeader = hasHeaderCb.checked;
+      const body = hasHeader ? rows.slice(1) : rows;
+      const items = [];
+      let badDates = 0;
+      for(const r of body){
+        const it = { question:"", coreKeyword:"", coreRef:"", supports:[], tags:[], uploadDate:"" };
+        let curSup = null;
+        roles.forEach((role, c)=>{
+          const val = (r[c]||"").trim();
+          if(!val) return;
+          switch(role){
+            case "question": it.question = it.question ? it.question + "\n" + val : val; break;
+            case "coreKeyword": it.coreKeyword = val; break;
+            case "coreRef": it.coreRef = val; break;
+            case "supKeyword": curSup = { keyword: val, ref: "" }; it.supports.push(curSup); break;
+            case "supRef":
+              if(curSup && !curSup.ref){ curSup.ref = val; }
+              else { curSup = { keyword: "", ref: val }; it.supports.push(curSup); }
+              break;
+            case "tags":
+              val.split(/[,;|]/).map(t=>t.trim()).filter(Boolean).forEach(t=>{ if(!it.tags.includes(t)) it.tags.push(t); });
+              break;
+            case "date": {
+              const d = parseDate(val);
+              if(d) it.uploadDate = d; else badDates++;
+              break;
+            }
+          }
+        });
+        if(it.question) items.push(it);
+      }
+      return { items, skippedEmpty: body.length - items.length, badDates };
+    }
+
+    function renderMap(){
+      const hasHeader = hasHeaderCb.checked;
+      const ncols = Math.max.apply(null, rows.map(r=>r.length));
+      const headRow = hasHeader ? rows[0] : null;
+      const sample = rows.slice(hasHeader ? 1 : 0, (hasHeader ? 1 : 0) + 3);
+      let h = '<div class="bulk-map"><table><thead><tr>';
+      for(let c=0;c<ncols;c++){
+        h += '<th>' + (headRow ? escapeHtml(headRow[c]||"(trống)") : "Cột " + (c+1)) +
+          '<br><select data-col="'+c+'">' +
+          ROLES.map(o=>'<option value="'+o.v+'"'+(roles[c]===o.v?' selected':'')+'>'+o.t+'</option>').join("") +
+          '</select></th>';
+      }
+      h += '</tr></thead><tbody>';
+      sample.forEach(r=>{
+        h += '<tr>';
+        for(let c=0;c<ncols;c++) h += '<td class="cell" title="'+escapeHtml(r[c]||"")+'">'+escapeHtml((r[c]||"").slice(0,80))+'</td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div>';
+      mapWrap.innerHTML = h;
+      mapWrap.querySelectorAll("select").forEach(sel=>{
+        sel.addEventListener("change", ()=>{ roles[+sel.dataset.col] = sel.value; updateSummary(); });
+      });
+      updateSummary();
+    }
+
+    function existingSet(){
+      return new Set(questions.map(q => norm(q.question)));
+    }
+
+    function updateSummary(){
+      const { items, badDates } = buildItems();
+      const hasQ = roles.includes("question");
+      let msg = "";
+      if(!hasQ){
+        msg = '<span class="warn">Chưa có cột nào được gán là "Câu hỏi".</span>';
+        importRow.style.display = "none";
+      }else{
+        let dup = 0;
+        if(skipDupCb.checked){
+          const ex = existingSet(); const seen = new Set();
+          items.forEach(it=>{ const k = norm(it.question); if(ex.has(k) || seen.has(k)) dup++; seen.add(k); });
+        }
+        msg = "Nhận diện được <b>"+items.length+"</b> câu hỏi" + (dup ? " (<b>"+dup+"</b> trùng sẽ bị bỏ qua)" : "") + ".";
+        if(badDates) msg += ' <span class="warn">'+badDates+' ô ngày không đọc được (sẽ dùng ngày hôm nay).</span>';
+        importRow.style.display = items.length ? "flex" : "none";
+      }
+      summaryEl.innerHTML = msg;
+    }
+
+    function analyze(text){
+      rows = parseTable(text);
+      if(!rows.length){
+        mapWrap.innerHTML = ""; summaryEl.textContent = "Không có dữ liệu để phân tích."; importRow.style.display = "none"; return;
+      }
+      const ncols = Math.max.apply(null, rows.map(r=>r.length));
+      if(hasHeaderCb.dataset.touched !== "1"){
+        const g = rows[0].map(guessRole);
+        hasHeaderCb.checked = g.includes("question");
+      }
+      if(hasHeaderCb.checked){
+        roles = [];
+        for(let c=0;c<ncols;c++) roles.push(guessRole(rows[0][c]||""));
+        // nếu header là "Từ khóa"/"Gợi ý" lặp lại ở các cột sau cột support đầu tiên thì coi là support
+        let seenSup = false;
+        for(let c=0;c<ncols;c++){
+          if(roles[c]==="supKeyword" || roles[c]==="supRef") seenSup = true;
+        }
+        if(!roles.includes("question")) roles = guessRolesNoHeader(ncols);
+      }else{
+        roles = guessRolesNoHeader(ncols);
+      }
+      renderMap();
+    }
+
+    hasHeaderCb.addEventListener("change", ()=>{ hasHeaderCb.dataset.touched = "1"; if(rows.length) analyze(txt.value); });
+    skipDupCb.addEventListener("change", ()=>{ if(rows.length) updateSummary(); });
+    parseBtn.addEventListener("click", ()=> analyze(txt.value));
+    txt.addEventListener("paste", ()=> setTimeout(()=> analyze(txt.value), 0));
+    fileIn.addEventListener("change", ()=>{
+      const f = fileIn.files && fileIn.files[0];
+      if(!f) return;
+      const rd = new FileReader();
+      rd.onload = ()=>{ txt.value = String(rd.result||"").replace(/^﻿/,""); analyze(txt.value); };
+      rd.readAsText(f, "utf-8");
+    });
+    clearBtn.addEventListener("click", ()=>{
+      txt.value = ""; rows = []; roles = []; mapWrap.innerHTML = ""; summaryEl.textContent = ""; importRow.style.display = "none"; fileIn.value = "";
+    });
+
+    importBtn.addEventListener("click", ()=>{
+      const { items } = buildItems();
+      const ex = skipDupCb.checked ? existingSet() : new Set();
+      const today = todayISO();
+      let added = 0, skipped = 0;
+      items.forEach((it, idx)=>{
+        const k = norm(it.question);
+        if(skipDupCb.checked && ex.has(k)){ skipped++; return; }
+        ex.add(k);
+        questions.push({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,7) + idx,
+          question: it.question,
+          coreKeyword: it.coreKeyword,
+          coreRef: it.coreRef,
+          supports: it.supports,
+          tags: it.tags,
+          uploadDate: it.uploadDate || today
+        });
+        added++;
+      });
+      saveQuestions(questions);
+      renderList();
+      summaryEl.innerHTML = "Đã nhập <b>"+added+"</b> câu hỏi" + (skipped ? ", bỏ qua "+skipped+" câu trùng" : "") + ".";
+      txt.value = ""; rows = []; roles = []; mapWrap.innerHTML = ""; importRow.style.display = "none"; fileIn.value = "";
+    });
+  })();
 
 })();
 </script>
